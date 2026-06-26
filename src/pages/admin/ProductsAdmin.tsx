@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   fetchProducts,
   createProduct,
@@ -9,13 +9,33 @@ import {
 import { ProductFormModal } from '../../components/admin/ProductFormModal';
 import { formatPrice } from '../../utils/format';
 import { isSupabaseConfigured } from '../../lib/supabase';
-import type { Product } from '../../types/product';
+import { ALL_CATEGORIES, type Product } from '../../types/product';
+
+const PAGE_SIZE = 8;
+
+type StockFilter = 'todos' | 'in' | 'low' | 'out';
+
+const STOCK_FILTERS: { value: StockFilter; label: string }[] = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'in', label: 'Em estoque' },
+  { value: 'low', label: 'Baixo' },
+  { value: 'out', label: 'Esgotado' },
+];
+
+const stockClass = (stock: number) =>
+  stock === 0 ? 'is-out' : stock <= 5 ? 'is-low' : 'is-in';
 
 export function ProductsAdmin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+
+  // Filtros + paginação
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>(ALL_CATEGORIES);
+  const [stockFilter, setStockFilter] = useState<StockFilter>('todos');
+  const [page, setPage] = useState(1);
 
   const load = () => {
     setLoading(true);
@@ -33,6 +53,43 @@ export function ProductsAdmin() {
       .catch((err) => console.error('Falha ao carregar produtos:', err))
       .finally(() => setLoading(false));
   }, []);
+
+  // Categorias disponíveis (derivadas do catálogo)
+  const categories = useMemo(() => {
+    const unique = Array.from(new Set(products.map((p) => p.category))).sort();
+    return [ALL_CATEGORIES, ...unique];
+  }, [products]);
+
+  // Aplica busca + categoria + status de estoque
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchesCategory =
+        category === ALL_CATEGORIES || p.category === category;
+      const matchesSearch =
+        term === '' ||
+        p.name.toLowerCase().includes(term) ||
+        p.category.toLowerCase().includes(term);
+      const matchesStock =
+        stockFilter === 'todos' ||
+        (stockFilter === 'in' && p.stock > 5) ||
+        (stockFilter === 'low' && p.stock > 0 && p.stock <= 5) ||
+        (stockFilter === 'out' && p.stock === 0);
+      return matchesCategory && matchesSearch && matchesStock;
+    });
+  }, [products, search, category, stockFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Mantém a página dentro do intervalo válido se os filtros reduzirem a lista.
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+  // Volta para a primeira página sempre que um filtro muda.
+  const resetTo = <T,>(setter: (v: T) => void) => (value: T) => {
+    setter(value);
+    setPage(1);
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -60,9 +117,6 @@ export function ProductsAdmin() {
       alert('Não foi possível remover o produto.');
     }
   };
-
-  const stockClass = (stock: number) =>
-    stock === 0 ? 'is-out' : stock <= 5 ? 'is-low' : 'is-in';
 
   return (
     <div>
@@ -92,71 +146,148 @@ export function ProductsAdmin() {
         </p>
       )}
 
+      <div className="admin-toolbar">
+        <input
+          className="admin-search"
+          type="search"
+          placeholder="Buscar por nome ou categoria…"
+          value={search}
+          onChange={(e) => resetTo(setSearch)(e.target.value)}
+        />
+        <select
+          className="admin-select"
+          value={category}
+          onChange={(e) => resetTo(setCategory)(e.target.value)}
+          aria-label="Filtrar por categoria"
+        >
+          {categories.map((c) => (
+            <option key={c} value={c}>
+              {c === ALL_CATEGORIES ? 'Todas as categorias' : c}
+            </option>
+          ))}
+        </select>
+        <div className="admin-filters admin-filters--inline">
+          {STOCK_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              className={`admin-chip ${
+                stockFilter === f.value ? 'admin-chip--active' : ''
+              }`}
+              onClick={() => resetTo(setStockFilter)(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div className="admin-loading">
           <span className="admin-spinner" aria-hidden="true" />
           <p>Carregando…</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="admin-empty">Nenhum produto encontrado com esses filtros.</p>
       ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Categoria</th>
-                <th>Preço</th>
-                <th>Estoque</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id}>
-                  <td>
-                    <div className="admin-table__product">
-                      <img src={product.image} alt="" />
-                      <div>
-                        <span className="admin-table__name">
-                          {product.name}
-                          {product.isNew && (
-                            <span className="admin-tag">Novo</span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>{product.category}</td>
-                  <td>{formatPrice(product.price)}</td>
-                  <td>
-                    <span className={`stock-chip stock-chip--${stockClass(product.stock)}`}>
-                      {product.stock}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="admin-table__actions">
-                      <button
-                        className="admin-icon-btn"
-                        onClick={() => openEdit(product)}
-                        disabled={!isSupabaseConfigured}
-                        aria-label={`Editar ${product.name}`}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className="admin-icon-btn admin-icon-btn--danger"
-                        onClick={() => handleDelete(product)}
-                        disabled={!isSupabaseConfigured}
-                        aria-label={`Remover ${product.name}`}
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  </td>
+        <>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Categoria</th>
+                  <th>Preço</th>
+                  <th>Estoque</th>
+                  <th />
                 </tr>
+              </thead>
+              <tbody>
+                {pageItems.map((product) => (
+                  <tr key={product.id}>
+                    <td>
+                      <div className="admin-table__product">
+                        <img src={product.image} alt="" />
+                        <div>
+                          <span className="admin-table__name">
+                            {product.name}
+                            {product.isNew && (
+                              <span className="admin-tag">Novo</span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td>{product.category}</td>
+                    <td>{formatPrice(product.price)}</td>
+                    <td>
+                      <span
+                        className={`stock-chip stock-chip--${stockClass(product.stock)}`}
+                      >
+                        {product.stock}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="admin-table__actions">
+                        <button
+                          className="admin-icon-btn"
+                          onClick={() => openEdit(product)}
+                          disabled={!isSupabaseConfigured}
+                          aria-label={`Editar ${product.name}`}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="admin-icon-btn admin-icon-btn--danger"
+                          onClick={() => handleDelete(product)}
+                          disabled={!isSupabaseConfigured}
+                          aria-label={`Remover ${product.name}`}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pagination">
+            <span className="pagination__info">
+              {start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)} de{' '}
+              {filtered.length}
+            </span>
+            <div className="pagination__controls">
+              <button
+                className="pagination__btn"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                aria-label="Página anterior"
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  className={`pagination__btn ${
+                    n === currentPage ? 'pagination__btn--active' : ''
+                  }`}
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <button
+                className="pagination__btn"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                aria-label="Próxima página"
+              >
+                ›
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       <ProductFormModal
