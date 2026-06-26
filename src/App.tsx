@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { FilterBar } from './components/FilterBar';
 import { ProductGrid } from './components/ProductGrid';
 import { CartDrawer, type CartLine } from './components/CartDrawer';
+import { Checkout } from './components/Checkout';
 import { Footer } from './components/Footer';
 import { products as allProducts } from './data/products';
 import { ALL_CATEGORIES, type Cart, type SortOption } from './types/product';
@@ -23,6 +24,7 @@ function App() {
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES);
   const [sort, setSort] = useState<SortOption>('newest');
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   // Favoritos e carrinho persistidos no localStorage
   const [favorites, setFavorites] = useState<number[]>(() =>
@@ -121,6 +123,17 @@ function App() {
     });
   };
 
+  // Abre o checkout a partir do carrinho
+  const openCheckout = () => {
+    setCartOpen(false);
+    setCheckoutOpen(true);
+  };
+
+  // Pedido confirmado: esvazia o carrinho
+  const confirmOrder = () => {
+    setCart({});
+  };
+
   return (
     <div className="app">
       <Header
@@ -158,6 +171,15 @@ function App() {
         onInc={addToCart}
         onDec={decFromCart}
         onRemove={removeFromCart}
+        onCheckout={openCheckout}
+      />
+
+      <Checkout
+        open={checkoutOpen}
+        lines={cartLines}
+        subtotal={cartTotal}
+        onClose={() => setCheckoutOpen(false)}
+        onConfirm={confirmOrder}
       />
     </div>
   );

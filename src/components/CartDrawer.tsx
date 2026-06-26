@@ -14,6 +14,7 @@ interface CartDrawerProps {
   onInc: (id: number) => void;
   onDec: (id: number) => void;
   onRemove: (id: number) => void;
+  onCheckout: () => void;
 }
 
 /** Drawer do carrinho: desliza pela direita (desktop) ou por baixo (mobile). */
@@ -25,6 +26,7 @@ export function CartDrawer({
   onInc,
   onDec,
   onRemove,
+  onCheckout,
 }: CartDrawerProps) {
   const count = lines.reduce((sum, line) => sum + line.qty, 0);
 
@@ -102,7 +104,7 @@ export function CartDrawer({
             </ul>
 
             <div className="drawer__footer">
-              <button className="drawer__checkout">
+              <button className="drawer__checkout" onClick={onCheckout}>
                 <span>Finalizar compra</span>
                 <span>{formatPrice(total)}</span>
               </button>
