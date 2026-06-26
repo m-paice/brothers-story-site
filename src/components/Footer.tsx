@@ -8,7 +8,16 @@ export function Footer() {
 
       <div className="footer__inner container">
         <div className="footer__brand">
-          <span className="footer__logo">Elite Fashion</span>
+          <span className="footer__logo">
+            <img
+              className="footer__logo-img"
+              src="/logo.jpg"
+              alt=""
+              width={32}
+              height={32}
+            />
+            Brother Store
+          </span>
           <p className="footer__tagline">
             Redefinindo a experiência de luxo digital por meio de precisão
             técnica e estética minimalista.
@@ -53,7 +62,7 @@ export function Footer() {
 
       <div className="footer__bottom container">
         <p>
-          © {new Date().getFullYear()} Elite Fashion. Todos os direitos
+          © {new Date().getFullYear()} Brother Store. Todos os direitos
           reservados.
         </p>
         <p>Feito com precisão técnica.</p>

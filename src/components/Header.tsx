@@ -27,8 +27,14 @@ export function Header({
       <div className="header__inner container">
         {/* Logo */}
         <a href="/" className="header__logo">
-          <span className="header__logo-mark" aria-hidden="true" />
-          <span className="header__logo-text">Elite Fashion</span>
+          <img
+            className="header__logo-img"
+            src="/logo.jpg"
+            alt="Brother Store"
+            width={30}
+            height={30}
+          />
+          <span className="header__logo-text">Brother Store</span>
         </a>
 
         {/* Navegação central (desktop) */}

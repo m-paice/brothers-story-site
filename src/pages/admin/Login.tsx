@@ -37,7 +37,13 @@ export function Login() {
     <div className="login">
       <form className="login__card" onSubmit={handleSubmit}>
         <div className="login__brand">
-          <span className="login__brand-mark" />
+          <img
+            className="login__brand-img"
+            src="/logo.jpg"
+            alt="Brother Store"
+            width={32}
+            height={32}
+          />
           <span className="login__brand-text">Brother Store</span>
         </div>
         <h1 className="login__title">Painel administrativo</h1>

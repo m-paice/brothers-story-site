@@ -21,7 +21,13 @@ export function AdminLayout() {
     <div className="admin">
       <aside className="admin__sidebar">
         <div className="admin__brand">
-          <span className="admin__brand-mark" />
+          <img
+            className="admin__brand-img"
+            src="/logo.jpg"
+            alt="Brother Store"
+            width={28}
+            height={28}
+          />
           <span className="admin__brand-text">Brother Store</span>
         </div>
 
