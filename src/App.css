@@ -1154,6 +1154,47 @@
   .toolbar {
     top: auto;
     position: static;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  /* Chips de categoria em linha própria (cheia) + ordenação abaixo */
+  .toolbar__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  /* Linha de chips: rola na horizontal, com respiro nas laterais e fade */
+  .tabs {
+    padding: var(--space-1) var(--space-5);
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--space-5),
+      #000 calc(100% - var(--space-5)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--space-5),
+      #000 calc(100% - var(--space-5)),
+      transparent 100%
+    );
+  }
+  .tabs__item {
+    padding: var(--space-2) var(--space-4);
+  }
+  /* Ordenação alinhada com o respiro lateral */
+  .sort {
+    justify-content: space-between;
+    padding: 0 var(--space-5);
+  }
+  .sort__select {
+    flex: 1;
+  }
+  .toolbar__count {
+    padding: 0 var(--space-5);
   }
 
   .footer__inner {
