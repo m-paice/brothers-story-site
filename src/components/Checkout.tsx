@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { CartLine } from './CartDrawer';
 import { formatPrice } from '../utils/format';
+import { resolveImageUrl } from '../utils/image';
 import { createOrder } from '../lib/orders';
 import type { NewOrder } from '../types/order';
 
@@ -283,7 +284,7 @@ export function Checkout({
                   <li key={product.id} className="checkout__item">
                     <img
                       className="checkout__thumb"
-                      src={product.image}
+                      src={resolveImageUrl(product.image, 200)}
                       alt={product.name}
                     />
                     <div className="checkout__item-info">

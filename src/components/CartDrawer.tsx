@@ -1,5 +1,6 @@
 import type { Product } from '../types/product';
 import { formatPrice } from '../utils/format';
+import { resolveImageUrl } from '../utils/image';
 
 export interface CartLine {
   product: Product;
@@ -68,7 +69,7 @@ export function CartDrawer({
                 <li key={product.id} className="drawer__item">
                   <img
                     className="drawer__thumb"
-                    src={product.image}
+                    src={resolveImageUrl(product.image, 200)}
                     alt={product.name}
                   />
                   <div className="drawer__info">

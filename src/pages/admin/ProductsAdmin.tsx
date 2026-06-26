@@ -8,6 +8,7 @@ import {
 } from '../../lib/products';
 import { ProductFormModal } from '../../components/admin/ProductFormModal';
 import { formatPrice } from '../../utils/format';
+import { resolveImageUrl } from '../../utils/image';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import { ALL_CATEGORIES, type Product } from '../../types/product';
 
@@ -206,7 +207,7 @@ export function ProductsAdmin() {
                   <tr key={product.id}>
                     <td>
                       <div className="admin-table__product">
-                        <img src={product.image} alt="" />
+                        <img src={resolveImageUrl(product.image, 120)} alt="" />
                         <div>
                           <span className="admin-table__name">
                             {product.name}

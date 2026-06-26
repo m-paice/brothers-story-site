@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { formatPrice } from '../../utils/format';
+import { resolveImageUrl } from '../../utils/image';
 import {
   PAYMENT_METHOD_META,
   type NewSale,
@@ -208,7 +209,7 @@ export function SaleFormModal({
                     const maxed = inCart >= product.stock;
                     return (
                       <li key={product.id} className="sale-result">
-                        <img src={product.image} alt="" />
+                        <img src={resolveImageUrl(product.image, 120)} alt="" />
                         <div className="sale-result__info">
                           <span className="sale-result__name">
                             {product.name}
@@ -248,7 +249,7 @@ export function SaleFormModal({
                     <li key={product.id} className="checkout__item">
                       <img
                         className="checkout__thumb"
-                        src={product.image}
+                        src={resolveImageUrl(product.image, 120)}
                         alt=""
                       />
                       <div className="checkout__item-info">

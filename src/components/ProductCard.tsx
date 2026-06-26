@@ -1,5 +1,6 @@
 import type { Product } from '../types/product';
 import { formatPrice } from '../utils/format';
+import { resolveImageUrl } from '../utils/image';
 
 interface ProductCardProps {
   product: Product;
@@ -31,7 +32,7 @@ export function ProductCard({
       <div className="card__media">
         <img
           className="card__image"
-          src={product.image}
+          src={resolveImageUrl(product.image)}
           alt={product.name}
           loading="lazy"
         />
