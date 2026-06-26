@@ -57,6 +57,76 @@ create trigger trg_order_number
   for each row execute function public.set_order_number();
 
 -- ----------------------------------------------------------------------------
+-- Controle de estoque por status (detalhes e comentários em stock.sql)
+--   Estoque é deduzido ao entrar em 'confirmado' e devolvido ao sair.
+--   Confirmar sem estoque suficiente é bloqueado.
+-- ----------------------------------------------------------------------------
+create or replace function public.apply_stock_on_order_change()
+returns trigger as $$
+declare
+  item      jsonb;
+  pid       bigint;
+  qty       integer;
+  available integer;
+  old_held  boolean;
+  new_held  boolean;
+begin
+  old_held := (tg_op in ('UPDATE', 'DELETE')) and old.status = 'confirmado';
+  new_held := (tg_op in ('INSERT', 'UPDATE')) and new.status = 'confirmado';
+
+  if old_held = new_held then
+    return case when tg_op = 'DELETE' then old else new end;
+  end if;
+
+  if new_held then
+    for item in select jsonb_array_elements(new.items) loop
+      pid := (item->>'id')::bigint;
+      qty := (item->>'qty')::integer;
+      select stock into available from public.products where id = pid for update;
+      if available is null then
+        continue;
+      end if;
+      if available < qty then
+        raise exception
+          'Estoque insuficiente para "%" (disponível %, pedido %)',
+          coalesce(item->>'name', pid::text), available, qty
+          using errcode = 'P0001';
+      end if;
+    end loop;
+
+    for item in select jsonb_array_elements(new.items) loop
+      update public.products
+        set stock = stock - (item->>'qty')::integer
+        where id = (item->>'id')::bigint;
+    end loop;
+  else
+    for item in select jsonb_array_elements(old.items) loop
+      update public.products
+        set stock = stock + (item->>'qty')::integer
+        where id = (item->>'id')::bigint;
+    end loop;
+  end if;
+
+  return case when tg_op = 'DELETE' then old else new end;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_stock_order_insert on public.orders;
+create trigger trg_stock_order_insert
+  after insert on public.orders
+  for each row execute function public.apply_stock_on_order_change();
+
+drop trigger if exists trg_stock_order_update on public.orders;
+create trigger trg_stock_order_update
+  after update of status on public.orders
+  for each row execute function public.apply_stock_on_order_change();
+
+drop trigger if exists trg_stock_order_delete on public.orders;
+create trigger trg_stock_order_delete
+  after delete on public.orders
+  for each row execute function public.apply_stock_on_order_change();
+
+-- ----------------------------------------------------------------------------
 -- Row Level Security
 --   products: leitura pública; escrita só autenticado (admin)
 --   orders:   inserção pública (loja); leitura/edição só autenticado (admin)

@@ -29,6 +29,7 @@ export function OrdersAdmin() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<OrderStatus | 'todos'>('todos');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -55,6 +56,9 @@ export function OrdersAdmin() {
   );
 
   const handleStatus = async (order: Order, status: OrderStatus) => {
+    if (order.status === status) return;
+    setActionError(null);
+
     // Atualização otimista
     setOrders((prev) =>
       prev.map((o) => (o.id === order.id ? { ...o, status } : o))
@@ -62,8 +66,12 @@ export function OrdersAdmin() {
     try {
       await updateOrderStatus(order.id, status);
     } catch (err) {
+      // Trigger de estoque pode bloquear (ex.: estoque insuficiente).
       console.error('Falha ao atualizar status:', err);
-      load();
+      const message =
+        err instanceof Error ? err.message : 'Falha ao atualizar o status.';
+      setActionError(`Pedido #${order.order_number}: ${message}`);
+      load(); // reverte para o estado real do banco
     }
   };
 
@@ -94,6 +102,12 @@ export function OrdersAdmin() {
           </button>
         ))}
       </div>
+
+      {actionError && (
+        <p className="admin-banner admin-banner--error" role="alert">
+          {actionError}
+        </p>
+      )}
 
       {!isSupabaseConfigured ? (
         <p className="admin-banner">

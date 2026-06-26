@@ -333,6 +333,11 @@
   border: 1px solid rgba(245, 158, 11, 0.25);
   border-radius: var(--radius-sm);
 }
+.admin-banner--error {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
 .admin-empty {
   padding: var(--space-7);
   text-align: center;
