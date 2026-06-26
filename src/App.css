@@ -144,6 +144,112 @@
   color: var(--color-text-secondary);
 }
 
+.header__store-link {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text);
+  transition: border-color var(--transition), color var(--transition);
+}
+.header__store-link:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ==========================================================================
+   Páginas institucionais (Sobre, Envios, Trocas, Contato)
+   ========================================================================== */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-5) 0 var(--space-7);
+}
+.page__head {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+.page__title {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.page__subtitle {
+  margin-top: var(--space-3);
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+.page__body {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: var(--color-text-secondary);
+}
+.page__body h2 {
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.page__body p {
+  margin-bottom: var(--space-4);
+}
+.page__body ul {
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-5);
+  list-style: disc;
+}
+.page__body li {
+  margin-bottom: var(--space-2);
+}
+.page__body strong {
+  color: var(--color-text);
+}
+.page__body a {
+  color: var(--color-accent);
+  transition: color var(--transition);
+}
+.page__body a:hover {
+  color: var(--color-accent-hover);
+}
+
+.page__contact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin: var(--space-5) 0 var(--space-6);
+}
+.contact-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: transform var(--transition), border-color var(--transition);
+}
+.contact-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-accent);
+}
+.contact-card--whatsapp:hover {
+  border-color: var(--color-success);
+}
+.contact-card__channel {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.contact-card__hint {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
 /* ==========================================================================
    Toolbar / FilterBar
    ========================================================================== */
@@ -1069,6 +1175,11 @@
   .checkout__body {
     grid-template-columns: 1fr;
     gap: var(--space-5);
+  }
+
+  /* Cards de contato empilhados no mobile */
+  .page__contact {
+    grid-template-columns: 1fr;
   }
 
   /* Carrinho desliza de baixo no mobile */

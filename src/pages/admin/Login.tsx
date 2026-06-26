@@ -40,11 +40,11 @@ export function Login() {
           <img
             className="login__brand-img"
             src="/logo.jpg"
-            alt="Brother Store"
+            alt="Brothers Story"
             width={32}
             height={32}
           />
-          <span className="login__brand-text">Brother Store</span>
+          <span className="login__brand-text">Brothers Story</span>
         </div>
         <h1 className="login__title">Painel administrativo</h1>
         <p className="login__subtitle">Entre para gerenciar a loja.</p>

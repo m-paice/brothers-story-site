@@ -24,11 +24,11 @@ export function AdminLayout() {
           <img
             className="admin__brand-img"
             src="/logo.jpg"
-            alt="Brother Store"
+            alt="Brothers Story"
             width={28}
             height={28}
           />
-          <span className="admin__brand-text">Brother Store</span>
+          <span className="admin__brand-text">Brothers Story</span>
         </div>
 
         <nav className="admin__nav">

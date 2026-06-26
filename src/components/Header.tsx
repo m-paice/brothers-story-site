@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { PRIMARY_NAV } from '../data/navigation';
 
 interface HeaderProps {
   search: string;
@@ -6,8 +8,6 @@ interface HeaderProps {
   cartCount: number;
   onOpenCart: () => void;
 }
-
-const NAV_LINKS = ['Coleções', 'Editorial', 'Lookbook', 'Sobre'];
 
 /**
  * Cabeçalho fixo: logo da marca, navegação central e ações (busca, conta, carrinho).
@@ -26,23 +26,23 @@ export function Header({
     <header className="header">
       <div className="header__inner container">
         {/* Logo */}
-        <a href="/" className="header__logo">
+        <Link to="/" className="header__logo">
           <img
             className="header__logo-img"
             src="/logo.jpg"
-            alt="Brother Store"
+            alt="Brothers Story"
             width={30}
             height={30}
           />
-          <span className="header__logo-text">Brother Store</span>
-        </a>
+          <span className="header__logo-text">Brothers Story</span>
+        </Link>
 
         {/* Navegação central (desktop) */}
         <nav className="header__nav" aria-label="Navegação principal">
-          {NAV_LINKS.map((link) => (
-            <a key={link} href="#" className="header__nav-link">
-              {link}
-            </a>
+          {PRIMARY_NAV.map((item) => (
+            <Link key={item.to} to={item.to} className="header__nav-link">
+              {item.label}
+            </Link>
           ))}
         </nav>
 
@@ -55,10 +55,6 @@ export function Header({
             aria-expanded={searchOpen}
           >
             <SearchIcon />
-          </button>
-
-          <button className="header__icon-btn" aria-label="Minha conta">
-            <UserIcon />
           </button>
 
           <button
@@ -110,23 +106,6 @@ function SearchIcon() {
     >
       <circle cx="11" cy="11" r="7" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
-function UserIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width="19"
-      height="19"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21a8 8 0 0 1 16 0" />
     </svg>
   );
 }
