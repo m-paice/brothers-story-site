@@ -9,6 +9,7 @@ import { AdminLayout } from './pages/admin/AdminLayout';
 import { Dashboard } from './pages/admin/Dashboard';
 import { ProductsAdmin } from './pages/admin/ProductsAdmin';
 import { OrdersAdmin } from './pages/admin/OrdersAdmin';
+import { SalesAdmin } from './pages/admin/SalesAdmin';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
 
 function App() {
@@ -30,6 +31,7 @@ function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="vendas" element={<SalesAdmin />} />
         <Route path="produtos" element={<ProductsAdmin />} />
         <Route path="pedidos" element={<OrdersAdmin />} />
       </Route>

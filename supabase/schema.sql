@@ -165,3 +165,110 @@ insert into public.products (name, price, original_price, stock, category, descr
   ('Suéter de Cashmere', 720, 720, 5, 'Tricô', 'Cashmere mongol grau A em modelagem de gola careca relaxada.', 'https://picsum.photos/seed/cashmere/700/900?grayscale', false),
   ('Calça Avant-Garde', 540, 680, 8, 'Calças', 'Construção drapeada assimétrica em tecido técnico fosco.', 'https://picsum.photos/seed/avantgarde/700/900?grayscale', false)
 on conflict do nothing;
+
+-- ----------------------------------------------------------------------------
+-- Vendas de balcão (PDV) — detalhes e comentários em sales.sql
+-- ----------------------------------------------------------------------------
+create table if not exists public.sales (
+  id             uuid primary key default gen_random_uuid(),
+  sale_number    text unique,
+  customer_name  text,
+  items          jsonb not null,
+  subtotal       numeric(10, 2) not null,
+  discount       numeric(10, 2) not null default 0,
+  total          numeric(10, 2) not null,
+  payment_method text not null
+                 check (payment_method in ('pix', 'cartao', 'dinheiro', 'prazo')),
+  due_days       integer,
+  due_date       date,
+  paid           boolean not null default false,
+  paid_at        timestamptz,
+  created_at     timestamptz not null default now()
+);
+
+create sequence if not exists public.sale_seq start 1;
+
+create or replace function public.set_sale_defaults()
+returns trigger as $$
+begin
+  if new.sale_number is null then
+    new.sale_number :=
+      'V-' || to_char(now(), 'YYYY') || '-' ||
+      lpad(nextval('public.sale_seq')::text, 4, '0');
+  end if;
+  if new.payment_method = 'prazo' then
+    if new.due_days is not null then
+      new.due_date := current_date + new.due_days;
+    end if;
+  else
+    new.due_days := null;
+    new.due_date := null;
+    new.paid := true;
+    if new.paid_at is null then
+      new.paid_at := now();
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_sale_defaults on public.sales;
+create trigger trg_sale_defaults
+  before insert on public.sales
+  for each row execute function public.set_sale_defaults();
+
+create or replace function public.apply_stock_on_sale_change()
+returns trigger as $$
+declare
+  item      jsonb;
+  pid       bigint;
+  qty       integer;
+  available integer;
+begin
+  if tg_op = 'INSERT' then
+    for item in select jsonb_array_elements(new.items) loop
+      pid := (item->>'id')::bigint;
+      qty := (item->>'qty')::integer;
+      select stock into available from public.products where id = pid for update;
+      if available is null then
+        continue;
+      end if;
+      if available < qty then
+        raise exception
+          'Estoque insuficiente para "%" (disponível %, venda %)',
+          coalesce(item->>'name', pid::text), available, qty
+          using errcode = 'P0001';
+      end if;
+    end loop;
+    for item in select jsonb_array_elements(new.items) loop
+      update public.products
+        set stock = stock - (item->>'qty')::integer
+        where id = (item->>'id')::bigint;
+    end loop;
+    return new;
+  elsif tg_op = 'DELETE' then
+    for item in select jsonb_array_elements(old.items) loop
+      update public.products
+        set stock = stock + (item->>'qty')::integer
+        where id = (item->>'id')::bigint;
+    end loop;
+    return old;
+  end if;
+  return null;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_stock_sale_insert on public.sales;
+create trigger trg_stock_sale_insert
+  after insert on public.sales
+  for each row execute function public.apply_stock_on_sale_change();
+
+drop trigger if exists trg_stock_sale_delete on public.sales;
+create trigger trg_stock_sale_delete
+  after delete on public.sales
+  for each row execute function public.apply_stock_on_sale_change();
+
+alter table public.sales enable row level security;
+drop policy if exists "sales_all_authenticated" on public.sales;
+create policy "sales_all_authenticated" on public.sales
+  for all to authenticated using (true) with check (true);

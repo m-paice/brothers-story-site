@@ -5,6 +5,7 @@ import '../../styles/admin.css';
 
 const NAV = [
   { to: '/admin', end: true, label: 'Dashboard', icon: '◧' },
+  { to: '/admin/vendas', end: false, label: 'Vendas', icon: '$' },
   { to: '/admin/produtos', end: false, label: 'Produtos', icon: '▦' },
   { to: '/admin/pedidos', end: false, label: 'Pedidos', icon: '✦' },
 ];
