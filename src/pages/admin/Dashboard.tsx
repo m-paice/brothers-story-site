@@ -2,64 +2,110 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchOrders } from '../../lib/orders';
 import { fetchProducts } from '../../lib/products';
+import { fetchSales } from '../../lib/sales';
 import { formatPrice } from '../../utils/format';
 import {
   ORDER_STATUS_META,
   type Order,
   type OrderStatus,
 } from '../../types/order';
+import {
+  PAYMENT_METHOD_META,
+  SALE_STATUS_META,
+  getSaleStatus,
+  type PaymentMethod,
+  type Sale,
+} from '../../types/sale';
 import type { Product } from '../../types/product';
 
-const STATUSES: OrderStatus[] = [
+const ORDER_STATUSES: OrderStatus[] = [
   'novo',
   'em_contato',
   'confirmado',
   'cancelado',
 ];
 
+const PAYMENTS: PaymentMethod[] = ['dinheiro', 'pix', 'cartao', 'prazo'];
+
+const PAYMENT_COLORS: Record<PaymentMethod, string> = {
+  dinheiro: 'var(--color-success)',
+  pix: 'var(--color-secondary)',
+  cartao: 'var(--color-accent)',
+  prazo: 'var(--color-warning)',
+};
+
 export function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Carregados de forma independente: uma falha em um não derruba os demais.
   useEffect(() => {
-    Promise.all([fetchOrders(), fetchProducts()])
-      .then(([o, p]) => {
-        setOrders(o);
-        setProducts(p);
-      })
-      .catch((err) => console.error('Falha ao carregar dashboard:', err))
+    fetchOrders()
+      .then(setOrders)
+      .catch((err) => console.error('Falha ao carregar pedidos:', err))
       .finally(() => setLoading(false));
+    fetchProducts()
+      .then(setProducts)
+      .catch((err) => console.error('Falha ao carregar produtos:', err));
+    fetchSales()
+      .then(setSales)
+      .catch((err) => console.error('Falha ao carregar vendas:', err));
   }, []);
 
-  const stats = useMemo(() => {
+  const orderStats = useMemo(() => {
     const novos = orders.filter((o) => o.status === 'novo').length;
-    const confirmados = orders.filter((o) => o.status === 'confirmado');
-    const receita = confirmados.reduce((sum, o) => sum + Number(o.total), 0);
-    const baixoEstoque = products.filter(
-      (p) => p.stock > 0 && p.stock <= 5
-    ).length;
-    const semEstoque = products.filter((p) => p.stock === 0).length;
+    const receita = orders
+      .filter((o) => o.status === 'confirmado')
+      .reduce((sum, o) => sum + Number(o.total), 0);
 
-    const byStatus = STATUSES.map((s) => ({
+    const byStatus = ORDER_STATUSES.map((s) => ({
       status: s,
       count: orders.filter((o) => o.status === s).length,
     }));
     const maxStatus = Math.max(1, ...byStatus.map((b) => b.count));
 
-    return {
-      totalPedidos: orders.length,
-      novos,
-      receita,
-      totalProdutos: products.length,
-      baixoEstoque,
-      semEstoque,
-      byStatus,
-      maxStatus,
-    };
-  }, [orders, products]);
+    return { total: orders.length, novos, receita, byStatus, maxStatus };
+  }, [orders]);
 
-  const recent = orders.slice(0, 6);
+  const saleStats = useMemo(() => {
+    const withStatus = sales.map((s) => ({ sale: s, status: getSaleStatus(s) }));
+    const recebido = sales
+      .filter((s) => s.paid)
+      .reduce((sum, s) => sum + Number(s.total), 0);
+    const aReceber = sales
+      .filter((s) => !s.paid)
+      .reduce((sum, s) => sum + Number(s.total), 0);
+    const vencidas = withStatus.filter((s) => s.status === 'vencido');
+
+    const byPayment = PAYMENTS.map((method) => ({
+      method,
+      total: sales
+        .filter((s) => s.payment_method === method)
+        .reduce((sum, s) => sum + Number(s.total), 0),
+    }));
+    const maxPay = Math.max(1, ...byPayment.map((b) => b.total));
+
+    return {
+      total: sales.length,
+      recebido,
+      aReceber,
+      vencidasCount: vencidas.length,
+      vencidasTotal: vencidas.reduce((sum, s) => sum + Number(s.sale.total), 0),
+      byPayment,
+      maxPay,
+    };
+  }, [sales]);
+
+  const catalog = useMemo(() => {
+    const baixo = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
+    const semEstoque = products.filter((p) => p.stock === 0).length;
+    return { total: products.length, baixo, semEstoque };
+  }, [products]);
+
+  const recentOrders = orders.slice(0, 6);
+  const recentSales = sales.slice(0, 6);
 
   if (loading) {
     return (
@@ -77,31 +123,34 @@ export function Dashboard() {
         <p className="admin-page__subtitle">Visão geral da loja</p>
       </div>
 
+      {/* ---- Pedidos (loja online) ---- */}
+      <h2 className="dash__section-title">Pedidos · loja online</h2>
+
       <div className="dash__cards">
         <article className="stat-card">
           <span className="stat-card__label">Pedidos</span>
-          <strong className="stat-card__value">{stats.totalPedidos}</strong>
-          <span className="stat-card__hint">{stats.novos} novo(s)</span>
+          <strong className="stat-card__value">{orderStats.total}</strong>
+          <span className="stat-card__hint">{orderStats.novos} novo(s)</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">Receita confirmada</span>
           <strong className="stat-card__value">
-            {formatPrice(stats.receita)}
+            {formatPrice(orderStats.receita)}
           </strong>
           <span className="stat-card__hint">pedidos confirmados</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">Produtos</span>
-          <strong className="stat-card__value">{stats.totalProdutos}</strong>
+          <strong className="stat-card__value">{catalog.total}</strong>
           <span className="stat-card__hint">no catálogo</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">Estoque crítico</span>
           <strong className="stat-card__value">
-            {stats.baixoEstoque + stats.semEstoque}
+            {catalog.baixo + catalog.semEstoque}
           </strong>
           <span className="stat-card__hint">
-            {stats.semEstoque} esgotado(s) · {stats.baixoEstoque} baixo(s)
+            {catalog.semEstoque} esgotado(s) · {catalog.baixo} baixo(s)
           </span>
         </article>
       </div>
@@ -110,7 +159,7 @@ export function Dashboard() {
         <section className="admin-panel">
           <h2 className="admin-panel__title">Pedidos por status</h2>
           <div className="bars">
-            {stats.byStatus.map(({ status, count }) => (
+            {orderStats.byStatus.map(({ status, count }) => (
               <div key={status} className="bars__row">
                 <span className="bars__label">
                   {ORDER_STATUS_META[status].label}
@@ -119,7 +168,7 @@ export function Dashboard() {
                   <div
                     className="bars__fill"
                     style={{
-                      width: `${(count / stats.maxStatus) * 100}%`,
+                      width: `${(count / orderStats.maxStatus) * 100}%`,
                       background: ORDER_STATUS_META[status].color,
                     }}
                   />
@@ -138,14 +187,16 @@ export function Dashboard() {
             </Link>
           </div>
 
-          {recent.length === 0 ? (
+          {recentOrders.length === 0 ? (
             <p className="admin-empty">Nenhum pedido ainda.</p>
           ) : (
             <ul className="recent">
-              {recent.map((order) => (
+              {recentOrders.map((order) => (
                 <li key={order.id} className="recent__item">
                   <div className="recent__info">
-                    <span className="recent__number">#{order.order_number}</span>
+                    <span className="recent__number">
+                      #{order.order_number}
+                    </span>
                     <span className="recent__name">{order.customer.nome}</span>
                   </div>
                   <span
@@ -159,6 +210,106 @@ export function Dashboard() {
                   </span>
                 </li>
               ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      {/* ---- Vendas (balcão) ---- */}
+      <h2 className="dash__section-title">Vendas · balcão</h2>
+
+      <div className="dash__cards">
+        <article className="stat-card">
+          <span className="stat-card__label">Vendas</span>
+          <strong className="stat-card__value">{saleStats.total}</strong>
+          <span className="stat-card__hint">no total</span>
+        </article>
+        <article className="stat-card">
+          <span className="stat-card__label">Receita recebida</span>
+          <strong className="stat-card__value">
+            {formatPrice(saleStats.recebido)}
+          </strong>
+          <span className="stat-card__hint">vendas pagas</span>
+        </article>
+        <article className="stat-card">
+          <span className="stat-card__label">A receber</span>
+          <strong className="stat-card__value">
+            {formatPrice(saleStats.aReceber)}
+          </strong>
+          <span className="stat-card__hint">vendas a prazo em aberto</span>
+        </article>
+        <article className="stat-card">
+          <span className="stat-card__label">Vencidas</span>
+          <strong className="stat-card__value">
+            {saleStats.vencidasCount}
+          </strong>
+          <span className="stat-card__hint">
+            {formatPrice(saleStats.vencidasTotal)} em atraso
+          </span>
+        </article>
+      </div>
+
+      <div className="dash__grid">
+        <section className="admin-panel">
+          <h2 className="admin-panel__title">Vendas por forma de pagamento</h2>
+          <div className="bars">
+            {saleStats.byPayment.map(({ method, total }) => (
+              <div key={method} className="bars__row">
+                <span className="bars__label">
+                  {PAYMENT_METHOD_META[method].label}
+                </span>
+                <div className="bars__track">
+                  <div
+                    className="bars__fill"
+                    style={{
+                      width: `${(total / saleStats.maxPay) * 100}%`,
+                      background: PAYMENT_COLORS[method],
+                    }}
+                  />
+                </div>
+                <span className="bars__count">{formatPrice(total)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="admin-panel">
+          <div className="admin-panel__head">
+            <h2 className="admin-panel__title">Vendas recentes</h2>
+            <Link className="admin-panel__link" to="/admin/vendas">
+              Ver todas
+            </Link>
+          </div>
+
+          {recentSales.length === 0 ? (
+            <p className="admin-empty">Nenhuma venda ainda.</p>
+          ) : (
+            <ul className="recent">
+              {recentSales.map((sale) => {
+                const status = getSaleStatus(sale);
+                return (
+                  <li key={sale.id} className="recent__item">
+                    <div className="recent__info">
+                      <span className="recent__number">
+                        #{sale.sale_number}
+                      </span>
+                      <span className="recent__name">
+                        {sale.customer_name || '—'} ·{' '}
+                        {PAYMENT_METHOD_META[sale.payment_method].label}
+                      </span>
+                    </div>
+                    <span
+                      className="status-pill"
+                      style={{ color: SALE_STATUS_META[status].color }}
+                    >
+                      {SALE_STATUS_META[status].label}
+                    </span>
+                    <span className="recent__total">
+                      {formatPrice(Number(sale.total))}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
