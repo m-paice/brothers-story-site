@@ -11,6 +11,7 @@ import {
   type Cart,
   type Product,
   type SortOption,
+  type ViewMode,
 } from '../types/product';
 import '../App.css';
 
@@ -31,6 +32,9 @@ export function Storefront() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(ALL_CATEGORIES);
   const [sort, setSort] = useState<SortOption>('newest');
+  const [view, setView] = useState<ViewMode>(() =>
+    loadFromStorage<ViewMode>('ef:view', 'list')
+  );
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
@@ -57,6 +61,10 @@ export function Storefront() {
   useEffect(() => {
     localStorage.setItem('ef:cart', JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem('ef:view', JSON.stringify(view));
+  }, [view]);
 
   // Categorias derivadas dos produtos (com "All" no início)
   const categories = useMemo(() => {
@@ -166,6 +174,8 @@ export function Storefront() {
         sort={sort}
         onSortChange={setSort}
         count={visibleProducts.length}
+        view={view}
+        onViewChange={setView}
       />
 
       <main className="content container">
@@ -177,6 +187,7 @@ export function Storefront() {
           <ProductGrid
             products={visibleProducts}
             favorites={favorites}
+            view={view}
             onToggleFavorite={toggleFavorite}
             onAddToCart={addToCart}
           />

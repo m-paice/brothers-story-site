@@ -17,6 +17,9 @@ export interface Product {
 // Critérios de ordenação disponíveis na toolbar
 export type SortOption = 'newest' | 'priceAsc' | 'priceDesc' | 'relevance';
 
+// Modo de visualização do catálogo no mobile (1 coluna ou 2 colunas)
+export type ViewMode = 'list' | 'grid';
+
 // Carrinho: mapa de id do produto -> quantidade
 export type Cart = Record<number, number>;
 

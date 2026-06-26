@@ -1,4 +1,4 @@
-import type { SortOption } from '../types/product';
+import type { SortOption, ViewMode } from '../types/product';
 
 interface FilterBarProps {
   categories: string[];
@@ -7,6 +7,8 @@ interface FilterBarProps {
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
   count: number;
+  view: ViewMode;
+  onViewChange: (view: ViewMode) => void;
 }
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -27,6 +29,8 @@ export function FilterBar({
   sort,
   onSortChange,
   count,
+  view,
+  onViewChange,
 }: FilterBarProps) {
   return (
     <div className="toolbar">
@@ -66,9 +70,44 @@ export function FilterBar({
         </label>
       </div>
 
-      <p className="toolbar__count">
-        {count} {count === 1 ? 'Produto' : 'Produtos'}
-      </p>
+      <div className="toolbar__meta">
+        <p className="toolbar__count">
+          {count} {count === 1 ? 'Produto' : 'Produtos'}
+        </p>
+
+        {/* Alternância de visualização (só no mobile) */}
+        <div className="view-toggle" role="group" aria-label="Visualização">
+          <button
+            className={`view-toggle__btn ${
+              view === 'list' ? 'view-toggle__btn--active' : ''
+            }`}
+            onClick={() => onViewChange('list')}
+            aria-label="Ver em lista"
+            aria-pressed={view === 'list'}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+          </button>
+          <button
+            className={`view-toggle__btn ${
+              view === 'grid' ? 'view-toggle__btn--active' : ''
+            }`}
+            onClick={() => onViewChange('grid')}
+            aria-label="Ver em grade"
+            aria-pressed={view === 'grid'}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <rect x="4" y="4" width="7" height="7" rx="1" />
+              <rect x="13" y="4" width="7" height="7" rx="1" />
+              <rect x="4" y="13" width="7" height="7" rx="1" />
+              <rect x="13" y="13" width="7" height="7" rx="1" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

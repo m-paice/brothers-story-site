@@ -1,9 +1,10 @@
-import type { Product } from '../types/product';
+import type { Product, ViewMode } from '../types/product';
 import { ProductCard } from './ProductCard';
 
 interface ProductGridProps {
   products: Product[];
   favorites: number[];
+  view: ViewMode;
   onToggleFavorite: (id: number) => void;
   onAddToCart: (id: number) => void;
 }
@@ -12,6 +13,7 @@ interface ProductGridProps {
 export function ProductGrid({
   products,
   favorites,
+  view,
   onToggleFavorite,
   onAddToCart,
 }: ProductGridProps) {
@@ -27,7 +29,7 @@ export function ProductGrid({
   }
 
   return (
-    <div className="grid">
+    <div className={`grid ${view === 'grid' ? 'grid--cols2' : ''}`}>
       {products.map((product) => (
         <ProductCard
           key={product.id}
