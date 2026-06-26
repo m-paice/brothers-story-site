@@ -1,0 +1,24 @@
+// Tipos centrais do catálogo
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number; // preço atual (com desconto aplicado)
+  originalPrice: number; // preço antes do desconto
+  discount: number; // percentual de desconto (0-100)
+  stock: number; // unidades em estoque
+  category: string;
+  description: string;
+  image: string; // URL da imagem
+  isNew: boolean;
+  isFavorite: boolean;
+}
+
+// Critérios de ordenação disponíveis na toolbar
+export type SortOption = 'newest' | 'priceAsc' | 'priceDesc' | 'relevance';
+
+// Carrinho: mapa de id do produto -> quantidade
+export type Cart = Record<number, number>;
+
+// Categoria especial que representa "todas"
+export const ALL_CATEGORIES = 'Todos';

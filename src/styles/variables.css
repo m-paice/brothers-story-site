@@ -1,0 +1,49 @@
+/* Design tokens — tema dark "Elite Fashion" */
+:root {
+  /* Cores base */
+  --color-bg: #0a0a0b;
+  --color-surface: #141417;
+  --color-surface-2: #0f0f11;
+  --color-border: #232327;
+
+  /* Texto */
+  --color-text: #f5f5f7;
+  --color-text-secondary: #8a8a93;
+
+  /* Marca / status */
+  --color-accent: #6366f1; /* indigo — destaque principal */
+  --color-accent-hover: #7c7ff5;
+  --color-secondary: #00d4ff;
+  --color-success: #10b981; /* em estoque */
+  --color-warning: #f59e0b; /* estoque baixo */
+  --color-danger: #ef4444; /* fora de estoque / sale */
+
+  /* Tipografia */
+  --font-sans: 'Inter', 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+
+  /* Espaçamentos */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* Raio e sombra */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --shadow-accent: 0 8px 24px rgba(99, 102, 241, 0.35);
+
+  /* Transições */
+  --transition: 0.3s ease;
+
+  /* Layout */
+  --header-height: 68px;
+  --container-max: 1320px;
+}
