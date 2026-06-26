@@ -78,7 +78,10 @@ export function Footer() {
           © {new Date().getFullYear()} Brothers Story. Todos os direitos
           reservados.
         </p>
-        <p>Brothers Story · Moda masculina.</p>
+        <p>
+          Brothers Story · Moda masculina.{' '}
+          <span className="footer__version">v{__APP_VERSION__}</span>
+        </p>
       </div>
     </footer>
   );

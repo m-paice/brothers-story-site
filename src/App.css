@@ -1325,6 +1325,10 @@
   font-size: 0.78rem;
   color: var(--color-text-secondary);
 }
+.footer__version {
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ==========================================================================
    Responsivo
