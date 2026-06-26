@@ -716,57 +716,53 @@
   font-size: 0.78rem;
   color: var(--color-text-secondary);
 }
-.checkout__field input {
-  height: 42px;
-  padding: 0 var(--space-3);
+.checkout__field input,
+.checkout__field textarea {
+  padding: var(--space-3);
   background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--color-text);
   font-size: 0.88rem;
+  font-family: inherit;
   transition: border-color var(--transition);
 }
-.checkout__field input:focus {
+.checkout__field input {
+  height: 42px;
+  padding: 0 var(--space-3);
+}
+.checkout__field textarea {
+  resize: vertical;
+}
+.checkout__field input:focus,
+.checkout__field textarea:focus {
   border-color: var(--color-accent);
   outline: none;
 }
-.checkout__field input::placeholder {
+.checkout__field input::placeholder,
+.checkout__field textarea::placeholder {
   color: var(--color-text-secondary);
 }
 
-.checkout__payments {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-.checkout__payment {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
+.checkout__note {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
   padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-2);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color var(--transition), background var(--transition);
 }
-.checkout__payment:hover {
-  border-color: #34343c;
+.checkout__error {
+  font-size: 0.82rem;
+  color: var(--color-danger);
 }
-.checkout__payment--active {
-  border-color: var(--color-accent);
-  background: rgba(99, 102, 241, 0.08);
+.checkout__success-order {
+  font-size: 0.95rem;
+  color: var(--color-text);
 }
-.checkout__payment input {
-  accent-color: var(--color-accent);
-}
-.checkout__payment-label {
-  font-size: 0.88rem;
-  font-weight: 500;
-}
-.checkout__payment-hint {
-  margin-left: auto;
-  font-size: 0.76rem;
-  color: var(--color-text-secondary);
+.checkout__success-order strong {
+  color: var(--color-accent);
 }
 
 .checkout__summary {

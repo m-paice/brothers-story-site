@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import type { CartLine } from './CartDrawer';
 import { formatPrice } from '../utils/format';
-
-type PaymentMethod = 'pix' | 'card' | 'boleto';
+import { createOrder } from '../lib/orders';
+import type { NewOrder } from '../types/order';
 
 interface CheckoutProps {
   open: boolean;
@@ -16,13 +16,20 @@ interface CheckoutProps {
 const FREE_SHIPPING_THRESHOLD = 300;
 const SHIPPING_FEE = 24.9;
 
-const PAYMENT_OPTIONS: { value: PaymentMethod; label: string; hint: string }[] = [
-  { value: 'pix', label: 'Pix', hint: '5% de desconto' },
-  { value: 'card', label: 'Cartão de crédito', hint: 'Em até 12x' },
-  { value: 'boleto', label: 'Boleto', hint: 'Aprovação em 1-2 dias úteis' },
-];
+const EMPTY_FORM = {
+  nome: '',
+  email: '',
+  telefone: '',
+  cep: '',
+  endereco: '',
+  numero: '',
+  complemento: '',
+  cidade: '',
+  uf: '',
+};
 
-/** Modal de finalização: dados de entrega, pagamento e resumo do pedido. */
+/** Modal de finalização: dados de contato/entrega e resumo do pedido.
+ *  Nesta versão não há pagamento — o pedido é registrado para o admin. */
 export function Checkout({
   open,
   lines,
@@ -30,26 +37,71 @@ export function Checkout({
   onClose,
   onConfirm,
 }: CheckoutProps) {
-  const [payment, setPayment] = useState<PaymentMethod>('pix');
-  const [done, setDone] = useState(false);
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
   const count = lines.reduce((sum, line) => sum + line.qty, 0);
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const pixDiscount = payment === 'pix' ? subtotal * 0.05 : 0;
-  const total = subtotal + shipping - pixDiscount;
+  const total = subtotal + shipping;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const setField = (key: keyof typeof EMPTY_FORM, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setDone(true);
+    if (submitting) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    const payload: NewOrder = {
+      customer: {
+        nome: form.nome,
+        email: form.email,
+        telefone: form.telefone,
+      },
+      shipping: {
+        cep: form.cep,
+        endereco: form.endereco,
+        numero: form.numero,
+        complemento: form.complemento,
+        cidade: form.cidade,
+        uf: form.uf.toUpperCase(),
+      },
+      items: lines.map(({ product, qty }) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        qty,
+      })),
+      subtotal,
+      shipping_fee: shipping,
+      total,
+    };
+
+    try {
+      const order = await createOrder(payload);
+      setOrderNumber(order.order_number);
+    } catch (err) {
+      console.error('Falha ao enviar pedido:', err);
+      setError('Não foi possível enviar seu pedido. Tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Fecha e restaura o estado para uma próxima compra.
   const handleClose = () => {
-    if (done) onConfirm();
-    setDone(false);
-    setPayment('pix');
+    if (orderNumber) onConfirm();
+    setOrderNumber(null);
+    setError(null);
+    setForm({ ...EMPTY_FORM });
     onClose();
   };
+
+  const done = orderNumber !== null;
 
   return (
     <>
@@ -65,12 +117,12 @@ export function Checkout({
         className={`checkout ${open ? 'checkout--open' : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label="Finalizar compra"
+        aria-label="Finalizar pedido"
         aria-hidden={!open}
       >
         <div className="checkout__header">
           <h2 className="checkout__title">
-            {done ? 'Pedido confirmado' : 'Finalizar compra'}
+            {done ? 'Pedido enviado' : 'Finalizar pedido'}
           </h2>
           <button
             className="checkout__close"
@@ -86,13 +138,13 @@ export function Checkout({
             <div className="checkout__success-mark" aria-hidden="true">
               ✓
             </div>
-            <p className="checkout__success-title">
-              Obrigado pela sua compra!
+            <p className="checkout__success-title">Recebemos seu pedido!</p>
+            <p className="checkout__success-order">
+              Pedido <strong>#{orderNumber}</strong>
             </p>
             <p className="checkout__success-text">
-              Seu pedido de {count} {count === 1 ? 'item' : 'itens'} no valor de{' '}
-              {formatPrice(total)} foi recebido. Enviamos a confirmação por
-              e-mail.
+              Em breve entraremos em contato para confirmar a disponibilidade e
+              combinar a forma de pagamento. Anote o número do seu pedido.
             </p>
             <button className="checkout__primary" onClick={handleClose}>
               Voltar à loja
@@ -105,7 +157,14 @@ export function Checkout({
                 <h3 className="checkout__section-title">Contato</h3>
                 <div className="checkout__field">
                   <label htmlFor="co-name">Nome completo</label>
-                  <input id="co-name" type="text" autoComplete="name" required />
+                  <input
+                    id="co-name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={form.nome}
+                    onChange={(e) => setField('nome', e.target.value)}
+                  />
                 </div>
                 <div className="checkout__row">
                   <div className="checkout__field">
@@ -115,6 +174,8 @@ export function Checkout({
                       type="email"
                       autoComplete="email"
                       required
+                      value={form.email}
+                      onChange={(e) => setField('email', e.target.value)}
                     />
                   </div>
                   <div className="checkout__field">
@@ -124,6 +185,8 @@ export function Checkout({
                       type="tel"
                       autoComplete="tel"
                       required
+                      value={form.telefone}
+                      onChange={(e) => setField('telefone', e.target.value)}
                     />
                   </div>
                 </div>
@@ -140,6 +203,8 @@ export function Checkout({
                       inputMode="numeric"
                       autoComplete="postal-code"
                       required
+                      value={form.cep}
+                      onChange={(e) => setField('cep', e.target.value)}
                     />
                   </div>
                   <div className="checkout__field">
@@ -149,17 +214,30 @@ export function Checkout({
                       type="text"
                       autoComplete="street-address"
                       required
+                      value={form.endereco}
+                      onChange={(e) => setField('endereco', e.target.value)}
                     />
                   </div>
                 </div>
                 <div className="checkout__row">
                   <div className="checkout__field checkout__field--sm">
                     <label htmlFor="co-number">Número</label>
-                    <input id="co-number" type="text" required />
+                    <input
+                      id="co-number"
+                      type="text"
+                      required
+                      value={form.numero}
+                      onChange={(e) => setField('numero', e.target.value)}
+                    />
                   </div>
                   <div className="checkout__field">
                     <label htmlFor="co-complement">Complemento</label>
-                    <input id="co-complement" type="text" />
+                    <input
+                      id="co-complement"
+                      type="text"
+                      value={form.complemento}
+                      onChange={(e) => setField('complemento', e.target.value)}
+                    />
                   </div>
                 </div>
                 <div className="checkout__row">
@@ -170,6 +248,8 @@ export function Checkout({
                       type="text"
                       autoComplete="address-level2"
                       required
+                      value={form.cidade}
+                      onChange={(e) => setField('cidade', e.target.value)}
                     />
                   </div>
                   <div className="checkout__field checkout__field--sm">
@@ -180,40 +260,17 @@ export function Checkout({
                       maxLength={2}
                       autoComplete="address-level1"
                       required
+                      value={form.uf}
+                      onChange={(e) => setField('uf', e.target.value)}
                     />
                   </div>
                 </div>
               </section>
 
-              <section className="checkout__section">
-                <h3 className="checkout__section-title">Pagamento</h3>
-                <div className="checkout__payments">
-                  {PAYMENT_OPTIONS.map((option) => (
-                    <label
-                      key={option.value}
-                      className={`checkout__payment ${
-                        payment === option.value
-                          ? 'checkout__payment--active'
-                          : ''
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={option.value}
-                        checked={payment === option.value}
-                        onChange={() => setPayment(option.value)}
-                      />
-                      <span className="checkout__payment-label">
-                        {option.label}
-                      </span>
-                      <span className="checkout__payment-hint">
-                        {option.hint}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </section>
+              <p className="checkout__note">
+                O pagamento será combinado após a confirmação do pedido por
+                nossa equipe.
+              </p>
             </div>
 
             <aside className="checkout__summary">
@@ -249,24 +306,20 @@ export function Checkout({
                   <dt>Frete</dt>
                   <dd>{shipping === 0 ? 'Grátis' : formatPrice(shipping)}</dd>
                 </div>
-                {pixDiscount > 0 && (
-                  <div className="checkout__total-row checkout__total-row--discount">
-                    <dt>Desconto Pix</dt>
-                    <dd>−{formatPrice(pixDiscount)}</dd>
-                  </div>
-                )}
                 <div className="checkout__total-row checkout__total-row--grand">
                   <dt>Total</dt>
                   <dd>{formatPrice(total)}</dd>
                 </div>
               </dl>
 
+              {error && <p className="checkout__error">{error}</p>}
+
               <button
                 type="submit"
                 className="checkout__primary"
-                disabled={lines.length === 0}
+                disabled={lines.length === 0 || submitting}
               >
-                Confirmar pedido
+                {submitting ? 'Enviando…' : 'Enviar pedido'}
               </button>
             </aside>
           </form>
