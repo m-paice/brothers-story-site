@@ -10,16 +10,32 @@ interface ProductFormModalProps {
   onSave: (input: ProductInput) => Promise<void>;
 }
 
-const emptyForm = {
+interface VariantRow {
+  size: string;
+  stock: string;
+}
+
+interface FormState {
+  name: string;
+  price: string;
+  originalPrice: string;
+  category: string;
+  description: string;
+  image: string;
+  isNew: boolean;
+  variants: VariantRow[];
+}
+
+const emptyForm = (): FormState => ({
   name: '',
   price: '',
   originalPrice: '',
-  stock: '',
   category: '',
   description: '',
   image: '',
   isNew: false,
-};
+  variants: [{ size: '', stock: '' }],
+});
 
 export function ProductFormModal({
   open,
@@ -27,7 +43,7 @@ export function ProductFormModal({
   onClose,
   onSave,
 }: ProductFormModalProps) {
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,19 +61,50 @@ export function ProductFormModal({
               name: product.name,
               price: String(product.price),
               originalPrice: String(product.originalPrice),
-              stock: String(product.stock),
               category: product.category,
               description: product.description,
               image: product.image,
               isNew: product.isNew,
+              variants:
+                product.variants.length > 0
+                  ? product.variants.map((v) => ({
+                      size: v.size,
+                      stock: String(v.stock),
+                    }))
+                  : [{ size: '', stock: '' }],
             }
-          : { ...emptyForm }
+          : emptyForm()
       );
     }
   }
 
+  const setVariant = (index: number, patch: Partial<VariantRow>) =>
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.map((v, i) => (i === index ? { ...v, ...patch } : v)),
+    }));
+
+  const addVariant = () =>
+    setForm((f) => ({ ...f, variants: [...f.variants, { size: '', stock: '' }] }));
+
+  const removeVariant = (index: number) =>
+    setForm((f) => ({
+      ...f,
+      variants: f.variants.filter((_, i) => i !== index),
+    }));
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    const variants = form.variants
+      .map((v) => ({ size: v.size.trim(), stock: Number(v.stock) || 0 }))
+      .filter((v) => v.size !== '');
+
+    if (variants.length === 0) {
+      setError('Adicione ao menos um tamanho.');
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -68,11 +115,11 @@ export function ProductFormModal({
       name: form.name.trim(),
       price,
       originalPrice: original,
-      stock: Number(form.stock) || 0,
       category: form.category.trim(),
       description: form.description.trim(),
       image: form.image.trim(),
       isNew: form.isNew,
+      variants,
     };
 
     try {
@@ -155,29 +202,56 @@ export function ProductFormModal({
             </div>
           </div>
 
-          <div className="checkout__row">
-            <div className="checkout__field">
-              <label htmlFor="pf-category">Categoria</label>
-              <input
-                id="pf-category"
-                type="text"
-                required
-                value={form.category}
-                onChange={(e) =>
-                  setForm({ ...form, category: e.target.value })
-                }
-              />
-            </div>
-            <div className="checkout__field checkout__field--sm">
-              <label htmlFor="pf-stock">Estoque</label>
-              <input
-                id="pf-stock"
-                type="number"
-                min="0"
-                required
-                value={form.stock}
-                onChange={(e) => setForm({ ...form, stock: e.target.value })}
-              />
+          <div className="checkout__field">
+            <label htmlFor="pf-category">Categoria</label>
+            <input
+              id="pf-category"
+              type="text"
+              required
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            />
+          </div>
+
+          {/* Tamanhos / estoque por variação */}
+          <div className="checkout__field">
+            <label>Tamanhos e estoque</label>
+            <div className="variant-editor">
+              {form.variants.map((v, i) => (
+                <div className="variant-row" key={i}>
+                  <input
+                    className="variant-row__size"
+                    type="text"
+                    placeholder="Tamanho (P, M, 42, Único…)"
+                    value={v.size}
+                    onChange={(e) => setVariant(i, { size: e.target.value })}
+                  />
+                  <input
+                    className="variant-row__stock"
+                    type="number"
+                    min="0"
+                    placeholder="Estoque"
+                    value={v.stock}
+                    onChange={(e) => setVariant(i, { stock: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="variant-row__remove"
+                    onClick={() => removeVariant(i)}
+                    disabled={form.variants.length === 1}
+                    aria-label="Remover tamanho"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="variant-editor__add"
+                onClick={addVariant}
+              >
+                + Adicionar tamanho
+              </button>
             </div>
           </div>
 

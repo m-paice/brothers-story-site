@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Product } from '../types/product';
 import { formatPrice } from '../utils/format';
 import { resolveImageUrl } from '../utils/image';
@@ -6,7 +7,6 @@ interface ProductCardProps {
   product: Product;
   isFavorite: boolean;
   onToggleFavorite: (id: number) => void;
-  onAddToCart: (id: number) => void;
 }
 
 /** Retorna rótulo + classe de cor para o status de estoque */
@@ -21,21 +21,23 @@ export function ProductCard({
   product,
   isFavorite,
   onToggleFavorite,
-  onAddToCart,
 }: ProductCardProps) {
   const stockStatus = getStockStatus(product.stock);
   const isOnSale = product.discount > 0;
   const isOutOfStock = product.stock === 0;
+  const href = `/produto/${product.id}`;
 
   return (
     <article className="card">
       <div className="card__media">
-        <img
-          className="card__image"
-          src={resolveImageUrl(product.image)}
-          alt={product.name}
-          loading="lazy"
-        />
+        <Link to={href} aria-label={product.name}>
+          <img
+            className="card__image"
+            src={resolveImageUrl(product.image)}
+            alt={product.name}
+            loading="lazy"
+          />
+        </Link>
 
         {/* Badges sobrepostos */}
         <div className="card__badges">
@@ -72,7 +74,9 @@ export function ProductCard({
 
       <div className="card__body">
         <div className="card__head">
-          <h3 className="card__name">{product.name}</h3>
+          <h3 className="card__name">
+            <Link to={href}>{product.name}</Link>
+          </h3>
           <div className="card__pricing">
             <span className="card__price">{formatPrice(product.price)}</span>
             {isOnSale && (
@@ -91,14 +95,15 @@ export function ProductCard({
           {stockStatus.label}
         </span>
 
-        {/* CTA */}
-        <button
-          className="card__cart-btn"
-          disabled={isOutOfStock}
-          onClick={() => onAddToCart(product.id)}
+        {/* CTA → página do produto */}
+        <Link
+          to={href}
+          className={`card__cart-btn ${
+            isOutOfStock ? 'card__cart-btn--muted' : ''
+          }`}
         >
-          {isOutOfStock ? 'Esgotado' : 'Adicionar ao Carrinho'}
-        </button>
+          {isOutOfStock ? 'Ver detalhes' : 'Comprar'}
+        </Link>
       </div>
     </article>
   );

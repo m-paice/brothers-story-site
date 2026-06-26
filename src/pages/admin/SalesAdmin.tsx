@@ -209,10 +209,11 @@ export function SalesAdmin() {
                     <section>
                       <h3 className="order-detail__title">Itens</h3>
                       <ul className="order-detail__items">
-                        {sale.items.map((item) => (
-                          <li key={item.id}>
+                        {sale.items.map((item, i) => (
+                          <li key={item.variant_id ?? `${item.id}-${i}`}>
                             <span>
                               {item.qty}× {item.name}
+                              {item.size ? ` (${item.size})` : ''}
                             </span>
                             <span>{formatPrice(item.price * item.qty)}</span>
                           </li>

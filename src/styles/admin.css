@@ -1027,6 +1027,113 @@
   flex-wrap: wrap;
   gap: var(--space-2);
 }
+
+/* Busca dentro do modal de venda: coluna, então não pode crescer na vertical */
+.sale-search {
+  flex: 0 0 auto;
+  width: 100%;
+  height: 44px;
+}
+
+/* Tamanhos no resultado da busca do PDV */
+.sale-result__sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+.sale-size {
+  min-width: 30px;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.74rem;
+  font-weight: 500;
+  transition: border-color var(--transition), color var(--transition);
+}
+.sale-size:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+.sale-size:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.sale-item__size {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  margin-left: var(--space-1);
+}
+
+/* Editor de tamanhos no formulário de produto */
+.variant-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.variant-row {
+  display: flex;
+  gap: var(--space-2);
+}
+.variant-row__size {
+  flex: 1;
+  min-width: 0;
+}
+.variant-row__stock {
+  flex: 0 0 96px;
+}
+.variant-row__size,
+.variant-row__stock {
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.86rem;
+}
+.variant-row__size:focus,
+.variant-row__stock:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+.variant-row__remove {
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  transition: border-color var(--transition), color var(--transition);
+}
+.variant-row__remove:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.variant-row__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.variant-editor__add {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  transition: border-color var(--transition), color var(--transition);
+}
+.variant-editor__add:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
 .sale-due-hint {
   font-size: 0.78rem;
   color: var(--color-warning);

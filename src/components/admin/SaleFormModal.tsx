@@ -6,7 +6,7 @@ import {
   type NewSale,
   type PaymentMethod,
 } from '../../types/sale';
-import type { Product } from '../../types/product';
+import type { Product, ProductVariant } from '../../types/product';
 
 interface SaleFormModalProps {
   open: boolean;
@@ -31,6 +31,7 @@ export function SaleFormModal({
   onSave,
 }: SaleFormModalProps) {
   const [search, setSearch] = useState('');
+  // Carrinho por variação: variantId -> quantidade
   const [cart, setCart] = useState<Record<number, number>>({});
   const [customerName, setCustomerName] = useState('');
   const [payment, setPayment] = useState<PaymentMethod>('dinheiro');
@@ -38,7 +39,6 @@ export function SaleFormModal({
   const [dueDaysInput, setDueDaysInput] = useState('30');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Base de tempo para o preview do vencimento (impureza só no inicializador).
   const [baseTime] = useState(() => Date.now());
 
   // Reseta o formulário a cada abertura (padrão sem useEffect).
@@ -56,13 +56,18 @@ export function SaleFormModal({
     }
   }
 
-  const productMap = useMemo(() => {
-    const map = new Map<number, Product>();
-    products.forEach((p) => map.set(p.id, p));
+  // Mapa variantId -> { product, variant } para resolver as linhas.
+  const variantMap = useMemo(() => {
+    const map = new Map<number, { product: Product; variant: ProductVariant }>();
+    products.forEach((product) =>
+      product.variants.forEach((variant) =>
+        map.set(variant.id, { product, variant })
+      )
+    );
     return map;
   }, [products]);
 
-  // Resultados da busca (esconde itens sem estoque do catálogo).
+  // Resultados da busca (apenas produtos com algum estoque).
   const results = useMemo(() => {
     const term = search.trim().toLowerCase();
     return products
@@ -79,9 +84,9 @@ export function SaleFormModal({
   const cartLines = useMemo(
     () =>
       Object.entries(cart)
-        .map(([id, qty]) => ({ product: productMap.get(Number(id))!, qty }))
+        .map(([vid, qty]) => ({ ...variantMap.get(Number(vid))!, qty }))
         .filter((line) => line.product),
-    [cart, productMap]
+    [cart, variantMap]
   );
 
   const subtotal = cartLines.reduce(
@@ -93,28 +98,28 @@ export function SaleFormModal({
   const dueDays = Number(dueDaysInput) || 0;
   const isPrazo = payment === 'prazo';
 
-  const addToCart = (product: Product) => {
+  const addVariant = (variant: ProductVariant) => {
     setCart((prev) => {
-      const qty = (prev[product.id] ?? 0) + 1;
-      if (qty > product.stock) return prev; // respeita o estoque
-      return { ...prev, [product.id]: qty };
+      const qty = (prev[variant.id] ?? 0) + 1;
+      if (qty > variant.stock) return prev;
+      return { ...prev, [variant.id]: qty };
     });
   };
 
-  const decFromCart = (id: number) => {
+  const decVariant = (variantId: number) => {
     setCart((prev) => {
-      const qty = (prev[id] ?? 0) - 1;
+      const qty = (prev[variantId] ?? 0) - 1;
       const next = { ...prev };
-      if (qty <= 0) delete next[id];
-      else next[id] = qty;
+      if (qty <= 0) delete next[variantId];
+      else next[variantId] = qty;
       return next;
     });
   };
 
-  const removeFromCart = (id: number) => {
+  const removeVariant = (variantId: number) => {
     setCart((prev) => {
       const next = { ...prev };
-      delete next[id];
+      delete next[variantId];
       return next;
     });
   };
@@ -133,8 +138,10 @@ export function SaleFormModal({
 
     const payload: NewSale = {
       customer_name: customerName.trim() || null,
-      items: cartLines.map(({ product, qty }) => ({
+      items: cartLines.map(({ product, variant, qty }) => ({
         id: product.id,
+        variant_id: variant.id,
+        size: variant.size,
         name: product.name,
         price: product.price,
         qty,
@@ -192,7 +199,7 @@ export function SaleFormModal({
             <section className="checkout__section">
               <h3 className="checkout__section-title">Produtos</h3>
               <input
-                className="admin-search"
+                className="admin-search sale-search"
                 type="search"
                 placeholder="Buscar produto…"
                 value={search}
@@ -204,33 +211,41 @@ export function SaleFormModal({
                     Nenhum produto disponível.
                   </li>
                 ) : (
-                  results.map((product) => {
-                    const inCart = cart[product.id] ?? 0;
-                    const maxed = inCart >= product.stock;
-                    return (
-                      <li key={product.id} className="sale-result">
-                        <img src={resolveImageUrl(product.image, 120)} alt="" />
-                        <div className="sale-result__info">
-                          <span className="sale-result__name">
-                            {product.name}
-                          </span>
-                          <span className="sale-result__meta">
-                            {formatPrice(product.price)} · {product.stock} em
-                            estoque
-                          </span>
+                  results.map((product) => (
+                    <li key={product.id} className="sale-result">
+                      <img src={resolveImageUrl(product.image, 120)} alt="" />
+                      <div className="sale-result__info">
+                        <span className="sale-result__name">
+                          {product.name}
+                        </span>
+                        <span className="sale-result__meta">
+                          {formatPrice(product.price)}
+                        </span>
+                        <div className="sale-result__sizes">
+                          {product.variants.map((v) => {
+                            const inCart = cart[v.id] ?? 0;
+                            const disabled = v.stock <= 0 || inCart >= v.stock;
+                            return (
+                              <button
+                                key={v.id}
+                                type="button"
+                                className="sale-size"
+                                onClick={() => addVariant(v)}
+                                disabled={disabled}
+                                title={
+                                  v.stock <= 0
+                                    ? 'Esgotado'
+                                    : `${v.stock} em estoque`
+                                }
+                              >
+                                {v.size}
+                              </button>
+                            );
+                          })}
                         </div>
-                        <button
-                          type="button"
-                          className="sale-result__add"
-                          onClick={() => addToCart(product)}
-                          disabled={maxed}
-                          aria-label={`Adicionar ${product.name}`}
-                        >
-                          +
-                        </button>
-                      </li>
-                    );
-                  })
+                      </div>
+                    </li>
+                  ))
                 )}
               </ul>
             </section>
@@ -241,23 +256,26 @@ export function SaleFormModal({
               </h3>
               {cartLines.length === 0 ? (
                 <p className="sale-cart__empty">
-                  Adicione produtos para iniciar a venda.
+                  Toque num tamanho para adicionar à venda.
                 </p>
               ) : (
                 <ul className="checkout__items">
-                  {cartLines.map(({ product, qty }) => (
-                    <li key={product.id} className="checkout__item">
+                  {cartLines.map(({ product, variant, qty }) => (
+                    <li key={variant.id} className="checkout__item">
                       <img
                         className="checkout__thumb"
                         src={resolveImageUrl(product.image, 120)}
                         alt=""
                       />
                       <div className="checkout__item-info">
-                        <p className="checkout__item-name">{product.name}</p>
+                        <p className="checkout__item-name">
+                          {product.name}{' '}
+                          <span className="sale-item__size">{variant.size}</span>
+                        </p>
                         <div className="sale-qty">
                           <button
                             type="button"
-                            onClick={() => decFromCart(product.id)}
+                            onClick={() => decVariant(variant.id)}
                             aria-label="Diminuir"
                           >
                             −
@@ -265,8 +283,8 @@ export function SaleFormModal({
                           <span>{qty}</span>
                           <button
                             type="button"
-                            onClick={() => addToCart(product)}
-                            disabled={qty >= product.stock}
+                            onClick={() => addVariant(variant)}
+                            disabled={qty >= variant.stock}
                             aria-label="Aumentar"
                           >
                             +
@@ -274,10 +292,27 @@ export function SaleFormModal({
                           <button
                             type="button"
                             className="sale-qty__remove"
-                            onClick={() => removeFromCart(product.id)}
+                            onClick={() => removeVariant(variant.id)}
                             aria-label="Remover"
+                            title="Remover"
                           >
-                            ✕
+                            <svg
+                              viewBox="0 0 24 24"
+                              width="15"
+                              height="15"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.9"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                              <line x1="10" y1="11" x2="10" y2="17" />
+                              <line x1="14" y1="11" x2="14" y2="17" />
+                            </svg>
                           </button>
                         </div>
                       </div>

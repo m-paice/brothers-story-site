@@ -1,12 +1,20 @@
 // Tipos centrais do catálogo
 
+// Variação de um produto (tamanho) com estoque próprio
+export interface ProductVariant {
+  id: number;
+  size: string;
+  stock: number;
+}
+
 export interface Product {
   id: number;
   name: string;
   price: number; // preço atual (com desconto aplicado)
   originalPrice: number; // preço antes do desconto
   discount: number; // percentual de desconto (0-100)
-  stock: number; // unidades em estoque
+  stock: number; // estoque total (soma das variações)
+  variants: ProductVariant[]; // tamanhos disponíveis
   category: string;
   description: string;
   image: string; // URL da imagem

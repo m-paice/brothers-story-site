@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import type { CartLine } from './CartDrawer';
+import type { CartEntry } from '../types/cart';
 import { formatPrice } from '../utils/format';
 import { resolveImageUrl } from '../utils/image';
 import { createOrder } from '../lib/orders';
@@ -7,7 +7,7 @@ import type { NewOrder } from '../types/order';
 
 interface CheckoutProps {
   open: boolean;
-  lines: CartLine[];
+  entries: CartEntry[];
   subtotal: number;
   onClose: () => void;
   onConfirm: () => void;
@@ -33,7 +33,7 @@ const EMPTY_FORM = {
  *  Nesta versão não há pagamento — o pedido é registrado para o admin. */
 export function Checkout({
   open,
-  lines,
+  entries,
   subtotal,
   onClose,
   onConfirm,
@@ -43,7 +43,7 @@ export function Checkout({
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
-  const count = lines.reduce((sum, line) => sum + line.qty, 0);
+  const count = entries.reduce((sum, e) => sum + e.qty, 0);
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
   const total = subtotal + shipping;
 
@@ -71,11 +71,13 @@ export function Checkout({
         cidade: form.cidade,
         uf: form.uf.toUpperCase(),
       },
-      items: lines.map(({ product, qty }) => ({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        qty,
+      items: entries.map((e) => ({
+        id: e.productId,
+        variant_id: e.variantId,
+        size: e.size,
+        name: e.name,
+        price: e.price,
+        qty: e.qty,
       })),
       subtotal,
       shipping_fee: shipping,
@@ -280,19 +282,21 @@ export function Checkout({
               </h3>
 
               <ul className="checkout__items">
-                {lines.map(({ product, qty }) => (
-                  <li key={product.id} className="checkout__item">
+                {entries.map((e) => (
+                  <li key={e.variantId} className="checkout__item">
                     <img
                       className="checkout__thumb"
-                      src={resolveImageUrl(product.image, 200)}
-                      alt={product.name}
+                      src={resolveImageUrl(e.image, 200)}
+                      alt={e.name}
                     />
                     <div className="checkout__item-info">
-                      <p className="checkout__item-name">{product.name}</p>
-                      <p className="checkout__item-qty">Qtd: {qty}</p>
+                      <p className="checkout__item-name">{e.name}</p>
+                      <p className="checkout__item-qty">
+                        Tam. {e.size} · Qtd: {e.qty}
+                      </p>
                     </div>
                     <span className="checkout__item-price">
-                      {formatPrice(product.price * qty)}
+                      {formatPrice(e.price * e.qty)}
                     </span>
                   </li>
                 ))}
@@ -318,7 +322,7 @@ export function Checkout({
               <button
                 type="submit"
                 className="checkout__primary"
-                disabled={lines.length === 0 || submitting}
+                disabled={entries.length === 0 || submitting}
               >
                 {submitting ? 'Enviando…' : 'Enviar pedido'}
               </button>

@@ -6,7 +6,6 @@ interface ProductGridProps {
   favorites: number[];
   view: ViewMode;
   onToggleFavorite: (id: number) => void;
-  onAddToCart: (id: number) => void;
 }
 
 /** Grid responsivo de produtos. Exibe estado vazio quando não há resultados. */
@@ -15,7 +14,6 @@ export function ProductGrid({
   favorites,
   view,
   onToggleFavorite,
-  onAddToCart,
 }: ProductGridProps) {
   if (products.length === 0) {
     return (
@@ -36,7 +34,6 @@ export function ProductGrid({
           product={product}
           isFavorite={favorites.includes(product.id)}
           onToggleFavorite={onToggleFavorite}
-          onAddToCart={onAddToCart}
         />
       ))}
     </div>

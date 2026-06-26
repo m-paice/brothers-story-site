@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { StoreLayout } from './components/StoreLayout';
 import { Storefront } from './pages/Storefront';
+import { ProductPage } from './pages/ProductPage';
 import { Sobre } from './pages/Sobre';
 import { Envios } from './pages/Envios';
 import { Trocas } from './pages/Trocas';
@@ -15,7 +17,10 @@ import { ProtectedRoute } from './components/admin/ProtectedRoute';
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Storefront />} />
+      <Route element={<StoreLayout />}>
+        <Route path="/" element={<Storefront />} />
+        <Route path="/produto/:id" element={<ProductPage />} />
+      </Route>
       <Route path="/sobre" element={<Sobre />} />
       <Route path="/envios" element={<Envios />} />
       <Route path="/trocas" element={<Trocas />} />

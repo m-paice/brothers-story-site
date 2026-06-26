@@ -1,27 +1,22 @@
-import type { Product } from '../types/product';
+import type { CartEntry } from '../types/cart';
 import { formatPrice } from '../utils/format';
 import { resolveImageUrl } from '../utils/image';
 
-export interface CartLine {
-  product: Product;
-  qty: number;
-}
-
 interface CartDrawerProps {
   open: boolean;
-  lines: CartLine[];
+  entries: CartEntry[];
   total: number;
   onClose: () => void;
-  onInc: (id: number) => void;
-  onDec: (id: number) => void;
-  onRemove: (id: number) => void;
+  onInc: (variantId: number) => void;
+  onDec: (variantId: number) => void;
+  onRemove: (variantId: number) => void;
   onCheckout: () => void;
 }
 
 /** Drawer do carrinho: desliza pela direita (desktop) ou por baixo (mobile). */
 export function CartDrawer({
   open,
-  lines,
+  entries,
   total,
   onClose,
   onInc,
@@ -29,7 +24,7 @@ export function CartDrawer({
   onRemove,
   onCheckout,
 }: CartDrawerProps) {
-  const count = lines.reduce((sum, line) => sum + line.qty, 0);
+  const count = entries.reduce((sum, e) => sum + e.qty, 0);
 
   return (
     <>
@@ -55,7 +50,7 @@ export function CartDrawer({
           </button>
         </div>
 
-        {lines.length === 0 ? (
+        {entries.length === 0 ? (
           <div className="drawer__empty">
             <p>Seu carrinho está vazio.</p>
             <button className="drawer__continue" onClick={onClose}>
@@ -65,28 +60,27 @@ export function CartDrawer({
         ) : (
           <>
             <ul className="drawer__list">
-              {lines.map(({ product, qty }) => (
-                <li key={product.id} className="drawer__item">
+              {entries.map((entry) => (
+                <li key={entry.variantId} className="drawer__item">
                   <img
                     className="drawer__thumb"
-                    src={resolveImageUrl(product.image, 200)}
-                    alt={product.name}
+                    src={resolveImageUrl(entry.image, 200)}
+                    alt={entry.name}
                   />
                   <div className="drawer__info">
-                    <p className="drawer__name">{product.name}</p>
-                    <p className="drawer__price">
-                      {formatPrice(product.price)}
-                    </p>
+                    <p className="drawer__name">{entry.name}</p>
+                    <p className="drawer__size">Tamanho: {entry.size}</p>
+                    <p className="drawer__price">{formatPrice(entry.price)}</p>
                     <div className="drawer__qty">
                       <button
-                        onClick={() => onDec(product.id)}
+                        onClick={() => onDec(entry.variantId)}
                         aria-label="Diminuir quantidade"
                       >
                         −
                       </button>
-                      <span>{qty}</span>
+                      <span>{entry.qty}</span>
                       <button
-                        onClick={() => onInc(product.id)}
+                        onClick={() => onInc(entry.variantId)}
                         aria-label="Aumentar quantidade"
                       >
                         +
@@ -95,10 +89,27 @@ export function CartDrawer({
                   </div>
                   <button
                     className="drawer__remove"
-                    onClick={() => onRemove(product.id)}
-                    aria-label={`Remover ${product.name}`}
+                    onClick={() => onRemove(entry.variantId)}
+                    aria-label={`Remover ${entry.name}`}
+                    title="Remover"
                   >
-                    ✕
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
                   </button>
                 </li>
               ))}
