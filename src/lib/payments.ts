@@ -6,6 +6,7 @@ interface StartPaymentInput {
   entries: CartEntry[];
   customer: OrderCustomer;
   shipping: OrderShipping;
+  shipping_option_id: number;
 }
 
 /**
@@ -16,6 +17,7 @@ export async function startPayment({
   entries,
   customer,
   shipping,
+  shipping_option_id,
 }: StartPaymentInput): Promise<{ init_point: string; order_number: string }> {
   if (!supabase) throw new Error('Pagamento indisponível: Supabase não configurado.');
 
@@ -24,6 +26,7 @@ export async function startPayment({
       items: entries.map((e) => ({ variant_id: e.variantId, qty: e.qty })),
       customer,
       shipping,
+      shipping_option_id,
     },
   });
 

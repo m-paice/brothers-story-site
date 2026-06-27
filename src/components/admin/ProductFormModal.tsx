@@ -23,6 +23,10 @@ interface FormState {
   description: string;
   image: string;
   isNew: boolean;
+  weight: string;
+  height: string;
+  width: string;
+  length: string;
   variants: VariantRow[];
 }
 
@@ -34,6 +38,10 @@ const emptyForm = (): FormState => ({
   description: '',
   image: '',
   isNew: false,
+  weight: '',
+  height: '',
+  width: '',
+  length: '',
   variants: [{ size: '', stock: '' }],
 });
 
@@ -65,6 +73,10 @@ export function ProductFormModal({
               description: product.description,
               image: product.image,
               isNew: product.isNew,
+              weight: String(product.weight),
+              height: String(product.height),
+              width: String(product.width),
+              length: String(product.length),
               variants:
                 product.variants.length > 0
                   ? product.variants.map((v) => ({
@@ -119,6 +131,10 @@ export function ProductFormModal({
       description: form.description.trim(),
       image: form.image.trim(),
       isNew: form.isNew,
+      weight: Number(form.weight) || 0,
+      height: Number(form.height) || 0,
+      width: Number(form.width) || 0,
+      length: Number(form.length) || 0,
       variants,
     };
 
@@ -263,6 +279,51 @@ export function ProductFormModal({
               value={form.image}
               onChange={(e) => setForm({ ...form, image: e.target.value })}
             />
+          </div>
+
+          {/* Frete: peso e dimensões */}
+          <div className="checkout__row">
+            <div className="checkout__field checkout__field--sm">
+              <label htmlFor="pf-weight">Peso (kg)</label>
+              <input
+                id="pf-weight"
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.weight}
+                onChange={(e) => setForm({ ...form, weight: e.target.value })}
+              />
+            </div>
+            <div className="checkout__field checkout__field--sm">
+              <label htmlFor="pf-height">Altura (cm)</label>
+              <input
+                id="pf-height"
+                type="number"
+                min="0"
+                value={form.height}
+                onChange={(e) => setForm({ ...form, height: e.target.value })}
+              />
+            </div>
+            <div className="checkout__field checkout__field--sm">
+              <label htmlFor="pf-width">Largura (cm)</label>
+              <input
+                id="pf-width"
+                type="number"
+                min="0"
+                value={form.width}
+                onChange={(e) => setForm({ ...form, width: e.target.value })}
+              />
+            </div>
+            <div className="checkout__field checkout__field--sm">
+              <label htmlFor="pf-length">Compr. (cm)</label>
+              <input
+                id="pf-length"
+                type="number"
+                min="0"
+                value={form.length}
+                onChange={(e) => setForm({ ...form, length: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="checkout__field">

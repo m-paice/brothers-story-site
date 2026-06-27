@@ -19,9 +19,6 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const FREE_SHIPPING_THRESHOLD = 300;
-const SHIPPING_FEE = 24.9;
-
 interface ReqItem {
   variant_id: number;
   qty: number;
@@ -33,7 +30,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { items, customer, shipping } = await req.json();
+    const { items, customer, shipping, shipping_option_id } = await req.json();
 
     if (!Array.isArray(items) || items.length === 0) {
       return json({ error: 'Carrinho vazio.' }, 400);
@@ -59,25 +56,46 @@ Deno.serve(async (req) => {
       userId = user?.id ?? null;
     }
 
+    // CPF do cliente (para a etiqueta de frete): do checkout, com fallback no perfil.
+    let cpf: string | null =
+      typeof customer?.cpf === 'string' && customer.cpf.trim()
+        ? customer.cpf.trim()
+        : null;
+    if (!cpf && userId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('cpf')
+        .eq('id', userId)
+        .single();
+      cpf = profile?.cpf ?? null;
+    }
+
     // Busca as variações pedidas + produto, para recalcular preços no servidor.
     const variantIds = (items as ReqItem[]).map((i) => i.variant_id);
     const { data: variants, error: vErr } = await supabase
       .from('product_variants')
-      .select('id, size, stock, product:products(id, name, price)')
+      .select(
+        'id, size, stock, product:products(id, name, price, weight, height, width, length)'
+      )
       .in('id', variantIds);
 
     if (vErr) throw vErr;
 
+    const productOf = (variantId: number) => {
+      const v = (variants ?? []).find((x) => x.id === variantId);
+      if (!v) throw new Error(`Variação ${variantId} não encontrada.`);
+      // deno-lint-ignore no-explicit-any
+      return (Array.isArray(v.product) ? v.product[0] : v.product) as any;
+    };
+
     // Monta os itens do pedido com preços confiáveis (do banco).
     const orderItems = (items as ReqItem[]).map((reqItem) => {
-      const v = (variants ?? []).find((x) => x.id === reqItem.variant_id);
-      if (!v) throw new Error(`Variação ${reqItem.variant_id} não encontrada.`);
-      const product = Array.isArray(v.product) ? v.product[0] : v.product;
+      const product = productOf(reqItem.variant_id);
       const qty = Math.max(1, Number(reqItem.qty) || 1);
       return {
         id: product.id,
-        variant_id: v.id,
-        size: v.size,
+        variant_id: reqItem.variant_id,
+        size: (variants ?? []).find((x) => x.id === reqItem.variant_id)?.size,
         name: product.name,
         price: Number(product.price),
         qty,
@@ -85,7 +103,52 @@ Deno.serve(async (req) => {
     });
 
     const subtotal = orderItems.reduce((s, i) => s + i.price * i.qty, 0);
-    const shippingFee = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+
+    // Recalcula o frete na SuperFrete e valida a opção escolhida pelo cliente.
+    const shippingProducts = (items as ReqItem[]).map((reqItem) => {
+      const p = productOf(reqItem.variant_id);
+      return {
+        quantity: Math.max(1, Number(reqItem.qty) || 1),
+        weight: Number(p.weight ?? 0.3),
+        height: Number(p.height ?? 2),
+        width: Number(p.width ?? 11),
+        length: Number(p.length ?? 16),
+      };
+    });
+
+    const baseUrl =
+      Deno.env.get('SUPERFRETE_BASE_URL') ?? 'https://sandbox.superfrete.com';
+    const freteRes = await fetch(`${baseUrl}/api/v0/calculator`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${Deno.env.get('SUPERFRETE_TOKEN')}`,
+        'User-Agent': 'Brothers Story (contato@brothersstory.com.br)',
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: { postal_code: Deno.env.get('ORIGIN_CEP') },
+        to: { postal_code: String(shipping?.cep ?? '').replace(/\D/g, '') },
+        services: '1,2,17',
+        options: {
+          own_hand: false,
+          receipt: false,
+          insurance_value: 0,
+          use_insurance_value: false,
+        },
+        products: shippingProducts,
+      }),
+    });
+    const freteData = await freteRes.json();
+    // deno-lint-ignore no-explicit-any
+    const chosen = (Array.isArray(freteData) ? freteData : []).find(
+      (s: any) => s.id === shipping_option_id && !s.error && s.price
+    );
+    if (!chosen) {
+      return json({ error: 'Opção de frete inválida. Recalcule o frete.' }, 400);
+    }
+    const shippingFee = Number(chosen.price);
+    const shippingService = chosen.name as string;
     const total = subtotal + shippingFee;
 
     // Cria o pedido aguardando pagamento.
@@ -95,11 +158,13 @@ Deno.serve(async (req) => {
         status: 'aguardando_pagamento',
         payment_status: 'pending',
         user_id: userId,
-        customer,
+        customer: { ...customer, cpf },
         shipping,
         items: orderItems,
         subtotal,
         shipping_fee: shippingFee,
+        shipping_service: shippingService,
+        shipping_service_id: chosen.id,
         total,
       })
       .select('id, order_number')
@@ -116,6 +181,8 @@ Deno.serve(async (req) => {
         unit_price: i.price,
         currency_id: 'BRL',
       })),
+      // Frete cobrado junto (soma ao total no Mercado Pago).
+      shipments: { cost: shippingFee, mode: 'not_specified' },
       payer: { name: customer?.nome, email: customer?.email },
       external_reference: String(order.id),
       back_urls: {

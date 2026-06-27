@@ -17,6 +17,10 @@ interface ProductRow {
   description: string;
   image: string;
   is_new: boolean;
+  weight: number;
+  height: number;
+  width: number;
+  length: number;
   product_variants: VariantRow[] | null;
 }
 
@@ -33,6 +37,8 @@ export type ProductInput = Omit<
 > & {
   variants: VariantInput[];
 };
+
+const DEFAULT_DIMS = { weight: 0.3, height: 2, width: 11, length: 16 };
 
 const pct = (original: number, price: number): number =>
   original > price ? Math.round((1 - price / original) * 100) : 0;
@@ -57,6 +63,10 @@ function rowToProduct(row: ProductRow): Product {
     image: row.image,
     isNew: row.is_new,
     isFavorite: false,
+    weight: Number(row.weight ?? DEFAULT_DIMS.weight),
+    height: Number(row.height ?? DEFAULT_DIMS.height),
+    width: Number(row.width ?? DEFAULT_DIMS.width),
+    length: Number(row.length ?? DEFAULT_DIMS.length),
   };
 }
 
@@ -71,6 +81,10 @@ function productToRow(input: ProductInput) {
     description: input.description,
     image: input.image,
     is_new: input.isNew,
+    weight: input.weight || DEFAULT_DIMS.weight,
+    height: input.height || DEFAULT_DIMS.height,
+    width: input.width || DEFAULT_DIMS.width,
+    length: input.length || DEFAULT_DIMS.length,
   };
 }
 

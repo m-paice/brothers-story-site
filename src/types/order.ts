@@ -14,6 +14,7 @@ export interface OrderCustomer {
   nome: string;
   email: string;
   telefone: string;
+  cpf?: string | null;
 }
 
 export interface OrderShipping {
@@ -21,6 +22,7 @@ export interface OrderShipping {
   endereco: string;
   numero: string;
   complemento: string;
+  bairro?: string;
   cidade: string;
   uf: string;
 }
@@ -44,12 +46,16 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   shipping_fee: number;
+  shipping_service: string | null;
   total: number;
   payment_id: string | null;
   payment_status: string | null;
   paid_at: string | null;
   user_id: string | null;
   tracking_code: string | null;
+  shipping_service_id: number | null;
+  label_url: string | null;
+  superfrete_order_id: string | null;
   created_at: string;
 }
 
@@ -65,6 +71,10 @@ export type NewOrder = Omit<
   | 'paid_at'
   | 'user_id'
   | 'tracking_code'
+  | 'shipping_service'
+  | 'shipping_service_id'
+  | 'label_url'
+  | 'superfrete_order_id'
 >;
 
 // Rótulos e cores de status para exibição no admin

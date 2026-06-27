@@ -6,6 +6,7 @@ import {
   deleteAddress,
   setDefaultAddress,
 } from '../../lib/account';
+import { fetchCep } from '../../lib/cep';
 import type { Address, AddressInput } from '../../types/account';
 
 const emptyForm = (): AddressInput & { makeDefault: boolean } => ({
@@ -104,6 +105,23 @@ export function AccountAddresses() {
   const setField = (key: keyof AddressInput, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  // CEP → preenche endereço automaticamente (ViaCEP).
+  const handleCep = (value: string) => {
+    setForm((f) => ({ ...f, cep: value }));
+    if (value.replace(/\D/g, '').length === 8) {
+      fetchCep(value).then((r) => {
+        if (!r) return;
+        setForm((f) => ({
+          ...f,
+          endereco: r.endereco || f.endereco,
+          bairro: r.bairro || f.bairro,
+          cidade: r.cidade || f.cidade,
+          uf: r.uf || f.uf,
+        }));
+      });
+    }
+  };
+
   return (
     <div>
       <div className="account-head">
@@ -129,7 +147,7 @@ export function AccountAddresses() {
           <div className="checkout__row">
             <div className="checkout__field checkout__field--sm">
               <label htmlFor="ad-cep">CEP</label>
-              <input id="ad-cep" type="text" required value={form.cep} onChange={(e) => setField('cep', e.target.value)} />
+              <input id="ad-cep" type="text" required value={form.cep} onChange={(e) => handleCep(e.target.value)} />
             </div>
             <div className="checkout__field">
               <label htmlFor="ad-end">Endereço</label>

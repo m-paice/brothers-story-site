@@ -885,6 +885,17 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+.order-detail__label {
+  margin-top: var(--space-4);
+}
+.order-detail__label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+  font-size: 0.85rem;
+}
 .order-detail__tracking {
   margin-top: var(--space-4);
 }

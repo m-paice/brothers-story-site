@@ -18,6 +18,10 @@ export async function createOrder(payload: NewOrder): Promise<Order> {
       paid_at: null,
       user_id: null,
       tracking_code: null,
+      shipping_service: null,
+      shipping_service_id: null,
+      label_url: null,
+      superfrete_order_id: null,
       created_at: now.toISOString(),
       ...payload,
     };
@@ -76,4 +80,27 @@ export async function updateOrderTracking(
     .update({ tracking_code })
     .eq('id', id);
   if (error) throw error;
+}
+
+/** Gera a etiqueta na SuperFrete (admin) e marca o pedido como enviado. */
+export async function generateLabel(
+  id: string
+): Promise<{ tracking_code: string | null; label_url: string | null }> {
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const { data, error } = await supabase.functions.invoke('gerar-etiqueta', {
+    body: { order_id: id },
+  });
+  if (error) {
+    // Tenta extrair a mensagem detalhada da função.
+    const ctx = (error as { context?: Response }).context;
+    let detail = '';
+    try {
+      detail = ctx ? JSON.stringify(await ctx.json()) : '';
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail || error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data as { tracking_code: string | null; label_url: string | null };
 }

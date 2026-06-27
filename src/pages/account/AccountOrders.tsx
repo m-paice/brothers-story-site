@@ -106,6 +106,21 @@ export function AccountOrders() {
                       </p>
                     )}
 
+                    <div className="account-order__address">
+                      <span className="account-order__section-title">
+                        Endereço de entrega
+                      </span>
+                      <p>
+                        {order.shipping.endereco}, {order.shipping.numero}
+                        {order.shipping.complemento
+                          ? ` — ${order.shipping.complemento}`
+                          : ''}
+                        <br />
+                        {order.shipping.cidade}/{order.shipping.uf} ·{' '}
+                        {order.shipping.cep}
+                      </p>
+                    </div>
+
                     <ul className="account-order__items">
                       {order.items.map((item, i) => (
                         <li key={item.variant_id ?? `${item.id}-${i}`}>
@@ -118,9 +133,24 @@ export function AccountOrders() {
                       ))}
                     </ul>
 
-                    <div className="account-order__total-row">
-                      <span>Total</span>
-                      <span>{formatPrice(Number(order.total))}</span>
+                    <div className="account-order__totals">
+                      <span>Subtotal</span>
+                      <span>{formatPrice(Number(order.subtotal))}</span>
+                      <span>
+                        Frete
+                        {order.shipping_service
+                          ? ` · ${order.shipping_service}`
+                          : ''}
+                      </span>
+                      <span>
+                        {Number(order.shipping_fee) === 0
+                          ? 'Grátis'
+                          : formatPrice(Number(order.shipping_fee))}
+                      </span>
+                      <span className="account-order__grand">Total</span>
+                      <span className="account-order__grand">
+                        {formatPrice(Number(order.total))}
+                      </span>
                     </div>
                   </div>
                 )}

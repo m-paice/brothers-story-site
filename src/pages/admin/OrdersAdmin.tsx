@@ -3,6 +3,7 @@ import {
   fetchOrders,
   updateOrderStatus,
   updateOrderTracking,
+  generateLabel,
 } from '../../lib/orders';
 import { formatPrice } from '../../utils/format';
 import {
@@ -41,6 +42,24 @@ export function OrdersAdmin() {
   const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>(
     {}
   );
+
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
+
+  const handleGenerateLabel = async (order: Order) => {
+    setActionError(null);
+    setGeneratingId(order.id);
+    try {
+      await generateLabel(order.id);
+      load();
+    } catch (err) {
+      console.error('Falha ao gerar etiqueta:', err);
+      setActionError(
+        `Etiqueta: ${err instanceof Error ? err.message : 'falha ao gerar.'}`
+      );
+    } finally {
+      setGeneratingId(null);
+    }
+  };
 
   const handleSaveTracking = async (order: Order) => {
     const code = (trackingDrafts[order.id] ?? '').trim();
@@ -262,6 +281,41 @@ export function OrdersAdmin() {
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    <div className="order-detail__label">
+                      <span className="order-detail__title">
+                        Etiqueta (SuperFrete)
+                      </span>
+                      {order.label_url ? (
+                        <div className="order-detail__label-row">
+                          <a
+                            className="admin-btn admin-btn--primary"
+                            href={order.label_url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Imprimir etiqueta
+                          </a>
+                          {order.tracking_code && (
+                            <span>Rastreio: {order.tracking_code}</span>
+                          )}
+                        </div>
+                      ) : order.status === 'pago' ? (
+                        <button
+                          className="admin-btn admin-btn--primary"
+                          onClick={() => handleGenerateLabel(order)}
+                          disabled={generatingId === order.id}
+                        >
+                          {generatingId === order.id
+                            ? 'Gerando…'
+                            : 'Gerar etiqueta'}
+                        </button>
+                      ) : (
+                        <p className="order-detail__cols">
+                          Disponível depois do pagamento (status “pago”).
+                        </p>
+                      )}
                     </div>
 
                     <div className="order-detail__tracking">

@@ -20,6 +20,11 @@ export interface Product {
   image: string; // URL da imagem
   isNew: boolean;
   isFavorite: boolean;
+  // Frete (SuperFrete): peso em kg, dimensões em cm
+  weight: number;
+  height: number;
+  width: number;
+  length: number;
 }
 
 // Critérios de ordenação disponíveis na toolbar

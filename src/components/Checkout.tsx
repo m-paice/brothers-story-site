@@ -8,6 +8,8 @@ import { startPayment } from '../lib/payments';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { fetchProfile, fetchAddresses } from '../lib/account';
+import { quoteShipping, type ShippingOption } from '../lib/shipping';
+import { fetchCep } from '../lib/cep';
 import type { Address } from '../types/account';
 import type { NewOrder } from '../types/order';
 
@@ -19,18 +21,16 @@ interface CheckoutProps {
   onConfirm: () => void;
 }
 
-// Frete fixo grátis acima desse valor; abaixo, cobra a taxa padrão.
-const FREE_SHIPPING_THRESHOLD = 300;
-const SHIPPING_FEE = 24.9;
-
 const EMPTY_FORM = {
   nome: '',
   email: '',
   telefone: '',
+  cpf: '',
   cep: '',
   endereco: '',
   numero: '',
   complemento: '',
+  bairro: '',
   cidade: '',
   uf: '',
 };
@@ -51,6 +51,12 @@ export function Checkout({
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
+  // Frete (SuperFrete)
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [shippingId, setShippingId] = useState<number | null>(null);
+  const [quoting, setQuoting] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
   // Compra exige login (quando há Supabase). Offline segue como guest.
   const needsLogin = isSupabaseConfigured && !session;
 
@@ -61,6 +67,7 @@ export function Checkout({
       endereco: a.endereco,
       numero: a.numero,
       complemento: a.complemento,
+      bairro: a.bairro,
       cidade: a.cidade,
       uf: a.uf,
     }));
@@ -76,6 +83,7 @@ export function Checkout({
           nome: f.nome || p?.nome || '',
           email: f.email || email,
           telefone: f.telefone || p?.telefone || '',
+          cpf: f.cpf || p?.cpf || '',
         }))
       )
       .catch(() => {});
@@ -89,15 +97,68 @@ export function Checkout({
   }, [open, session]);
 
   const count = entries.reduce((sum, e) => sum + e.qty, 0);
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+  const selectedShipping =
+    shippingOptions.find((o) => o.id === shippingId) ?? null;
+  const shipping = selectedShipping?.price ?? 0;
   const total = subtotal + shipping;
+
+  const handleQuote = async () => {
+    const cep = form.cep.replace(/\D/g, '');
+    if (cep.length < 8) {
+      setQuoteError('Informe um CEP válido.');
+      return;
+    }
+    setQuoting(true);
+    setQuoteError(null);
+    setShippingOptions([]);
+    setShippingId(null);
+    try {
+      const options = await quoteShipping(cep, entries);
+      if (options.length === 0) {
+        setQuoteError('Nenhuma opção de frete para este CEP.');
+      }
+      setShippingOptions(options);
+      // Pré-seleciona a mais barata.
+      const cheapest = [...options].sort((a, b) => a.price - b.price)[0];
+      if (cheapest) setShippingId(cheapest.id);
+    } catch (err) {
+      console.error('Falha ao cotar frete:', err);
+      setQuoteError('Não foi possível calcular o frete. Tente novamente.');
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   const setField = (key: keyof typeof EMPTY_FORM, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  // CEP: limpa o frete e preenche endereço automaticamente (ViaCEP).
+  const handleCepChange = (value: string) => {
+    setShippingOptions([]);
+    setShippingId(null);
+    setForm((prev) => ({ ...prev, cep: value }));
+    if (value.replace(/\D/g, '').length === 8) {
+      fetchCep(value).then((r) => {
+        if (!r) return;
+        setForm((prev) => ({
+          ...prev,
+          endereco: r.endereco || prev.endereco,
+          bairro: r.bairro || prev.bairro,
+          cidade: r.cidade || prev.cidade,
+          uf: r.uf || prev.uf,
+        }));
+      });
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
+
+    if (isSupabaseConfigured && shippingId === null) {
+      setError('Calcule e escolha o frete antes de continuar.');
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -106,12 +167,14 @@ export function Checkout({
       nome: form.nome,
       email: form.email,
       telefone: form.telefone,
+      cpf: form.cpf,
     };
     const shippingData = {
       cep: form.cep,
       endereco: form.endereco,
       numero: form.numero,
       complemento: form.complemento,
+      bairro: form.bairro,
       cidade: form.cidade,
       uf: form.uf.toUpperCase(),
     };
@@ -123,10 +186,11 @@ export function Checkout({
           entries,
           customer,
           shipping: shippingData,
+          shipping_option_id: shippingId!,
         });
         // Guarda o nº do pedido para exibir no retorno (sobrevive ao redirect).
         sessionStorage.setItem('ef:lastOrder', order_number);
-        window.location.href = init_point;
+        window.location.assign(init_point);
         return; // sai da loja para o checkout do Mercado Pago
       } catch (err) {
         console.error('Falha ao iniciar pagamento:', err);
@@ -170,6 +234,9 @@ export function Checkout({
     setOrderNumber(null);
     setError(null);
     setForm({ ...EMPTY_FORM });
+    setShippingOptions([]);
+    setShippingId(null);
+    setQuoteError(null);
     onClose();
   };
 
@@ -276,6 +343,18 @@ export function Checkout({
                     />
                   </div>
                 </div>
+                <div className="checkout__field">
+                  <label htmlFor="co-cpf">CPF</label>
+                  <input
+                    id="co-cpf"
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    placeholder="Para a nota e a etiqueta de envio"
+                    value={form.cpf}
+                    onChange={(e) => setField('cpf', e.target.value)}
+                  />
+                </div>
               </section>
 
               <section className="checkout__section">
@@ -312,7 +391,7 @@ export function Checkout({
                       autoComplete="postal-code"
                       required
                       value={form.cep}
-                      onChange={(e) => setField('cep', e.target.value)}
+                      onChange={(e) => handleCepChange(e.target.value)}
                     />
                   </div>
                   <div className="checkout__field">
@@ -350,6 +429,17 @@ export function Checkout({
                 </div>
                 <div className="checkout__row">
                   <div className="checkout__field">
+                    <label htmlFor="co-district">Bairro</label>
+                    <input
+                      id="co-district"
+                      type="text"
+                      value={form.bairro}
+                      onChange={(e) => setField('bairro', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="checkout__row">
+                  <div className="checkout__field">
                     <label htmlFor="co-city">Cidade</label>
                     <input
                       id="co-city"
@@ -373,6 +463,7 @@ export function Checkout({
                     />
                   </div>
                 </div>
+
               </section>
 
               <p className="checkout__note">
@@ -408,6 +499,52 @@ export function Checkout({
                 ))}
               </ul>
 
+              {/* Frete */}
+              <div className="checkout__freight">
+                <button
+                  type="button"
+                  className="checkout__freight-btn"
+                  onClick={handleQuote}
+                  disabled={quoting}
+                >
+                  {quoting ? 'Calculando…' : 'Calcular frete'}
+                </button>
+
+                {quoteError && <p className="checkout__error">{quoteError}</p>}
+
+                {shippingOptions.length > 0 && (
+                  <div className="freight-options">
+                    {shippingOptions.map((opt) => (
+                      <label
+                        key={opt.id}
+                        className={`freight-option ${
+                          shippingId === opt.id ? 'freight-option--active' : ''
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="frete"
+                          checked={shippingId === opt.id}
+                          onChange={() => setShippingId(opt.id)}
+                        />
+                        <span className="freight-option__name">
+                          {opt.name}
+                          {opt.company ? ` · ${opt.company}` : ''}
+                        </span>
+                        <span className="freight-option__meta">
+                          {opt.delivery_time != null
+                            ? `${opt.delivery_time} dia(s)`
+                            : ''}
+                        </span>
+                        <span className="freight-option__price">
+                          {formatPrice(opt.price)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <dl className="checkout__totals">
                 <div className="checkout__total-row">
                   <dt>Subtotal</dt>
@@ -415,7 +552,11 @@ export function Checkout({
                 </div>
                 <div className="checkout__total-row">
                   <dt>Frete</dt>
-                  <dd>{shipping === 0 ? 'Grátis' : formatPrice(shipping)}</dd>
+                  <dd>
+                    {selectedShipping
+                      ? formatPrice(shipping)
+                      : 'calcule o frete'}
+                  </dd>
                 </div>
                 <div className="checkout__total-row checkout__total-row--grand">
                   <dt>Total</dt>
@@ -428,7 +569,11 @@ export function Checkout({
               <button
                 type="submit"
                 className="checkout__primary"
-                disabled={entries.length === 0 || submitting}
+                disabled={
+                  entries.length === 0 ||
+                  submitting ||
+                  (isSupabaseConfigured && shippingId === null)
+                }
               >
                 {submitting
                   ? 'Processando…'
