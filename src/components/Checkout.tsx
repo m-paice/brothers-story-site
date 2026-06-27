@@ -3,6 +3,8 @@ import type { CartEntry } from '../types/cart';
 import { formatPrice } from '../utils/format';
 import { resolveImageUrl } from '../utils/image';
 import { createOrder } from '../lib/orders';
+import { startPayment } from '../lib/payments';
+import { isSupabaseConfigured } from '../lib/supabase';
 import type { NewOrder } from '../types/order';
 
 interface CheckoutProps {
@@ -57,20 +59,44 @@ export function Checkout({
     setSubmitting(true);
     setError(null);
 
+    const customer = {
+      nome: form.nome,
+      email: form.email,
+      telefone: form.telefone,
+    };
+    const shippingData = {
+      cep: form.cep,
+      endereco: form.endereco,
+      numero: form.numero,
+      complemento: form.complemento,
+      cidade: form.cidade,
+      uf: form.uf.toUpperCase(),
+    };
+
+    // Com Supabase configurado: pagamento real (redireciona ao Mercado Pago).
+    if (isSupabaseConfigured) {
+      try {
+        const { init_point, order_number } = await startPayment({
+          entries,
+          customer,
+          shipping: shippingData,
+        });
+        // Guarda o nº do pedido para exibir no retorno (sobrevive ao redirect).
+        sessionStorage.setItem('ef:lastOrder', order_number);
+        window.location.href = init_point;
+        return; // sai da loja para o checkout do Mercado Pago
+      } catch (err) {
+        console.error('Falha ao iniciar pagamento:', err);
+        setError('Não foi possível iniciar o pagamento. Tente novamente.');
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    // Fallback offline (dev sem Supabase): registra um pedido simulado.
     const payload: NewOrder = {
-      customer: {
-        nome: form.nome,
-        email: form.email,
-        telefone: form.telefone,
-      },
-      shipping: {
-        cep: form.cep,
-        endereco: form.endereco,
-        numero: form.numero,
-        complemento: form.complemento,
-        cidade: form.cidade,
-        uf: form.uf.toUpperCase(),
-      },
+      customer,
+      shipping: shippingData,
       items: entries.map((e) => ({
         id: e.productId,
         variant_id: e.variantId,
@@ -271,8 +297,9 @@ export function Checkout({
               </section>
 
               <p className="checkout__note">
-                O pagamento será combinado após a confirmação do pedido por
-                nossa equipe.
+                {isSupabaseConfigured
+                  ? 'Você será redirecionado ao Mercado Pago para pagar com Pix ou cartão de crédito com segurança.'
+                  : 'O pagamento será combinado após a confirmação do pedido por nossa equipe.'}
               </p>
             </div>
 
@@ -324,7 +351,11 @@ export function Checkout({
                 className="checkout__primary"
                 disabled={entries.length === 0 || submitting}
               >
-                {submitting ? 'Enviando…' : 'Enviar pedido'}
+                {submitting
+                  ? 'Processando…'
+                  : isSupabaseConfigured
+                  ? 'Ir para o pagamento'
+                  : 'Enviar pedido'}
               </button>
             </aside>
           </form>

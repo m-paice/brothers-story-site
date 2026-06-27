@@ -1035,6 +1035,75 @@
 }
 
 /* ==========================================================================
+   Retorno do pagamento
+   ========================================================================== */
+.payres {
+  max-width: 460px;
+  margin: var(--space-7) auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+}
+.payres__mark {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 2rem;
+}
+.payres__title {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.payres__order {
+  font-size: 0.95rem;
+}
+.payres__order strong {
+  color: var(--color-accent);
+}
+.payres__text {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.payres__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.payres__btn {
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: background var(--transition), border-color var(--transition),
+    color var(--transition);
+}
+.payres__btn:hover {
+  background: var(--color-accent-hover);
+}
+.payres__btn--ghost {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.payres__btn--ghost:hover {
+  background: transparent;
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+/* ==========================================================================
    PDP — página de detalhe do produto
    ========================================================================== */
 .pdp__back {

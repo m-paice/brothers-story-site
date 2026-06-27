@@ -1,6 +1,12 @@
 // Tipos do fluxo de pedidos (sem pagamento nesta versão)
 
-export type OrderStatus = 'novo' | 'em_contato' | 'confirmado' | 'cancelado';
+export type OrderStatus =
+  | 'aguardando_pagamento'
+  | 'novo'
+  | 'em_contato'
+  | 'confirmado'
+  | 'pago'
+  | 'cancelado';
 
 export interface OrderCustomer {
   nome: string;
@@ -37,19 +43,36 @@ export interface Order {
   subtotal: number;
   shipping_fee: number;
   total: number;
+  payment_id: string | null;
+  payment_status: string | null;
+  paid_at: string | null;
   created_at: string;
 }
 
 // Payload enviado pela loja ao criar um pedido (sem campos gerados pelo banco)
-export type NewOrder = Omit<Order, 'id' | 'order_number' | 'status' | 'created_at'>;
+export type NewOrder = Omit<
+  Order,
+  | 'id'
+  | 'order_number'
+  | 'status'
+  | 'created_at'
+  | 'payment_id'
+  | 'payment_status'
+  | 'paid_at'
+>;
 
 // Rótulos e cores de status para exibição no admin
 export const ORDER_STATUS_META: Record<
   OrderStatus,
   { label: string; color: string }
 > = {
+  aguardando_pagamento: {
+    label: 'Aguardando pagamento',
+    color: 'var(--color-warning)',
+  },
   novo: { label: 'Novo', color: 'var(--color-accent)' },
   em_contato: { label: 'Em contato', color: 'var(--color-warning)' },
+  pago: { label: 'Pago', color: 'var(--color-success)' },
   confirmado: { label: 'Confirmado', color: 'var(--color-success)' },
   cancelado: { label: 'Cancelado', color: 'var(--color-danger)' },
 };

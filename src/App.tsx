@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { StoreLayout } from './components/StoreLayout';
 import { Storefront } from './pages/Storefront';
 import { ProductPage } from './pages/ProductPage';
+import { PaymentResult } from './pages/PaymentResult';
 import { Sobre } from './pages/Sobre';
 import { Envios } from './pages/Envios';
 import { Trocas } from './pages/Trocas';
@@ -20,6 +21,15 @@ function App() {
       <Route element={<StoreLayout />}>
         <Route path="/" element={<Storefront />} />
         <Route path="/produto/:id" element={<ProductPage />} />
+        <Route
+          path="/pagamento/sucesso"
+          element={<PaymentResult kind="sucesso" />}
+        />
+        <Route
+          path="/pagamento/pendente"
+          element={<PaymentResult kind="pendente" />}
+        />
+        <Route path="/pagamento/erro" element={<PaymentResult kind="erro" />} />
       </Route>
       <Route path="/sobre" element={<Sobre />} />
       <Route path="/envios" element={<Envios />} />

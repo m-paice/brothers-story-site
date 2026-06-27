@@ -9,8 +9,10 @@ import {
 import { isSupabaseConfigured } from '../../lib/supabase';
 
 const STATUSES: OrderStatus[] = [
+  'aguardando_pagamento',
   'novo',
   'em_contato',
+  'pago',
   'confirmado',
   'cancelado',
 ];
@@ -206,6 +208,18 @@ export function OrdersAdmin() {
                         </span>
                       </div>
                     </section>
+
+                    {(order.payment_status || order.payment_id) && (
+                      <section>
+                        <h3 className="order-detail__title">Pagamento</h3>
+                        <p>
+                          Status: {order.payment_status ?? '—'}
+                          {order.paid_at
+                            ? ` · pago em ${formatDate(order.paid_at)}`
+                            : ''}
+                        </p>
+                      </section>
+                    )}
 
                     <div className="order-detail__status">
                       <span className="order-detail__title">

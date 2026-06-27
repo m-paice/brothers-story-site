@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Segredos locais de deploy (nunca versionar)
+supabase/.secrets.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

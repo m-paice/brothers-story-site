@@ -13,6 +13,9 @@ export async function createOrder(payload: NewOrder): Promise<Order> {
       id: crypto.randomUUID(),
       order_number: `${now.getFullYear()}-${String(fake).padStart(4, '0')}`,
       status: 'novo',
+      payment_id: null,
+      payment_status: null,
+      paid_at: null,
       created_at: now.toISOString(),
       ...payload,
     };
