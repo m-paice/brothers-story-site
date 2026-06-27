@@ -44,6 +44,21 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    // Identifica o cliente logado pelo JWT enviado no Authorization.
+    let userId: string | null = null;
+    const authHeader = req.headers.get('Authorization');
+    if (authHeader) {
+      const userClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const {
+        data: { user },
+      } = await userClient.auth.getUser();
+      userId = user?.id ?? null;
+    }
+
     // Busca as variações pedidas + produto, para recalcular preços no servidor.
     const variantIds = (items as ReqItem[]).map((i) => i.variant_id);
     const { data: variants, error: vErr } = await supabase
@@ -79,6 +94,7 @@ Deno.serve(async (req) => {
       .insert({
         status: 'aguardando_pagamento',
         payment_status: 'pending',
+        user_id: userId,
         customer,
         shipping,
         items: orderItems,

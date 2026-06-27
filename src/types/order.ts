@@ -6,6 +6,8 @@ export type OrderStatus =
   | 'em_contato'
   | 'confirmado'
   | 'pago'
+  | 'enviado'
+  | 'entregue'
   | 'cancelado';
 
 export interface OrderCustomer {
@@ -46,6 +48,8 @@ export interface Order {
   payment_id: string | null;
   payment_status: string | null;
   paid_at: string | null;
+  user_id: string | null;
+  tracking_code: string | null;
   created_at: string;
 }
 
@@ -59,6 +63,8 @@ export type NewOrder = Omit<
   | 'payment_id'
   | 'payment_status'
   | 'paid_at'
+  | 'user_id'
+  | 'tracking_code'
 >;
 
 // Rótulos e cores de status para exibição no admin
@@ -74,5 +80,16 @@ export const ORDER_STATUS_META: Record<
   em_contato: { label: 'Em contato', color: 'var(--color-warning)' },
   pago: { label: 'Pago', color: 'var(--color-success)' },
   confirmado: { label: 'Confirmado', color: 'var(--color-success)' },
+  enviado: { label: 'Enviado', color: 'var(--color-secondary)' },
+  entregue: { label: 'Entregue', color: 'var(--color-success)' },
   cancelado: { label: 'Cancelado', color: 'var(--color-danger)' },
 };
+
+// Sequência de etapas exibida na linha do tempo do cliente.
+export const ORDER_TIMELINE: { status: OrderStatus; label: string }[] = [
+  { status: 'aguardando_pagamento', label: 'Aguardando pagamento' },
+  { status: 'pago', label: 'Pagamento aprovado' },
+  { status: 'confirmado', label: 'Em preparação' },
+  { status: 'enviado', label: 'Enviado' },
+  { status: 'entregue', label: 'Entregue' },
+];

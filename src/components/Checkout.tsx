@@ -1,10 +1,14 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import type { CartEntry } from '../types/cart';
 import { formatPrice } from '../utils/format';
 import { resolveImageUrl } from '../utils/image';
 import { createOrder } from '../lib/orders';
 import { startPayment } from '../lib/payments';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { fetchProfile, fetchAddresses } from '../lib/account';
+import type { Address } from '../types/account';
 import type { NewOrder } from '../types/order';
 
 interface CheckoutProps {
@@ -40,10 +44,49 @@ export function Checkout({
   onClose,
   onConfirm,
 }: CheckoutProps) {
+  const { session } = useAuth();
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+
+  // Compra exige login (quando há Supabase). Offline segue como guest.
+  const needsLogin = isSupabaseConfigured && !session;
+
+  const applyAddress = (a: Address) =>
+    setForm((f) => ({
+      ...f,
+      cep: a.cep,
+      endereco: a.endereco,
+      numero: a.numero,
+      complemento: a.complemento,
+      cidade: a.cidade,
+      uf: a.uf,
+    }));
+
+  // Ao abrir logado: pré-preenche contato (perfil) e endereço padrão (salvos).
+  useEffect(() => {
+    if (!open || !session) return;
+    const email = session.user?.email ?? '';
+    fetchProfile()
+      .then((p) =>
+        setForm((f) => ({
+          ...f,
+          nome: f.nome || p?.nome || '',
+          email: f.email || email,
+          telefone: f.telefone || p?.telefone || '',
+        }))
+      )
+      .catch(() => {});
+    fetchAddresses()
+      .then((list) => {
+        setAddresses(list);
+        const def = list.find((a) => a.is_default) ?? list[0];
+        if (def) applyAddress(def);
+      })
+      .catch(() => {});
+  }, [open, session]);
 
   const count = entries.reduce((sum, e) => sum + e.qty, 0);
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
@@ -162,7 +205,21 @@ export function Checkout({
           </button>
         </div>
 
-        {done ? (
+        {needsLogin ? (
+          <div className="checkout__success">
+            <div className="checkout__success-mark" aria-hidden="true">
+              👤
+            </div>
+            <p className="checkout__success-title">Entre para finalizar</p>
+            <p className="checkout__success-text">
+              Você precisa estar logado para concluir a compra e acompanhar seu
+              pedido.
+            </p>
+            <Link to="/entrar?next=/" className="checkout__primary" onClick={onClose}>
+              Entrar ou criar conta
+            </Link>
+          </div>
+        ) : done ? (
           <div className="checkout__success">
             <div className="checkout__success-mark" aria-hidden="true">
               ✓
@@ -223,6 +280,28 @@ export function Checkout({
 
               <section className="checkout__section">
                 <h3 className="checkout__section-title">Entrega</h3>
+
+                {addresses.length > 0 && (
+                  <div className="checkout__field">
+                    <label htmlFor="co-saved">Endereço salvo</label>
+                    <select
+                      id="co-saved"
+                      className="sort__select"
+                      onChange={(e) => {
+                        const a = addresses.find((x) => x.id === e.target.value);
+                        if (a) applyAddress(a);
+                      }}
+                    >
+                      {addresses.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {(a.label || a.endereco) + ` — ${a.cidade}/${a.uf}`}
+                          {a.is_default ? ' (padrão)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div className="checkout__row">
                   <div className="checkout__field checkout__field--sm">
                     <label htmlFor="co-zip">CEP</label>

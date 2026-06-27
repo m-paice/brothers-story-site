@@ -8,11 +8,20 @@ import {
 import type { Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
+type Role = 'admin' | 'customer' | null;
+
 interface AuthContextValue {
   session: Session | null;
+  role: Role;
+  isAdmin: boolean;
   loading: boolean;
   configured: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    nome: string
+  ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -20,19 +29,35 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  // Sem Supabase não há sessão a carregar, então já inicia sem loading.
+  const [role, setRole] = useState<Role>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
+
+  // Busca o papel do usuário (admin/customer) a partir do profiles.
+  async function loadRole(userId: string | undefined) {
+    if (!supabase || !userId) {
+      setRole(null);
+      return;
+    }
+    const { data } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    setRole((data?.role as Role) ?? 'customer');
+  }
 
   useEffect(() => {
     if (!supabase) return;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       setSession(data.session);
+      await loadRole(data.session?.user?.id);
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
+      loadRole(next?.user?.id);
     });
 
     return () => sub.subscription.unsubscribe();
@@ -47,6 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
+  const signUp = async (email: string, password: string, nome: string) => {
+    if (!supabase) throw new Error('Supabase não configurado.');
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { nome } },
+    });
+    if (error) throw error;
+    // Sem sessão = e-mail de confirmação habilitado no Supabase.
+    return { needsConfirmation: !data.session };
+  };
+
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -56,9 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         session,
+        role,
+        isAdmin: role === 'admin',
         loading,
         configured: isSupabaseConfigured,
         signIn,
+        signUp,
         signOut,
       }}
     >

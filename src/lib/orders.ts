@@ -16,6 +16,8 @@ export async function createOrder(payload: NewOrder): Promise<Order> {
       payment_id: null,
       payment_status: null,
       paid_at: null,
+      user_id: null,
+      tracking_code: null,
       created_at: now.toISOString(),
       ...payload,
     };
@@ -41,6 +43,17 @@ export async function fetchOrders(): Promise<Order[]> {
   return data as Order[];
 }
 
+/** Pedidos do cliente logado (a RLS já restringe aos próprios). */
+export async function fetchMyOrders(): Promise<Order[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data as Order[];
+}
+
 export async function updateOrderStatus(
   id: string,
   status: OrderStatus
@@ -49,6 +62,18 @@ export async function updateOrderStatus(
   const { error } = await supabase
     .from('orders')
     .update({ status })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function updateOrderTracking(
+  id: string,
+  tracking_code: string
+): Promise<void> {
+  if (!supabase) throw new Error('Supabase não configurado.');
+  const { error } = await supabase
+    .from('orders')
+    .update({ tracking_code })
     .eq('id', id);
   if (error) throw error;
 }

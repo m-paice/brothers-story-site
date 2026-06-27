@@ -3,6 +3,11 @@ import { StoreLayout } from './components/StoreLayout';
 import { Storefront } from './pages/Storefront';
 import { ProductPage } from './pages/ProductPage';
 import { PaymentResult } from './pages/PaymentResult';
+import { CustomerAuth } from './pages/CustomerAuth';
+import { AccountLayout } from './pages/account/AccountLayout';
+import { AccountData } from './pages/account/AccountData';
+import { AccountAddresses } from './pages/account/AccountAddresses';
+import { AccountOrders } from './pages/account/AccountOrders';
 import { Sobre } from './pages/Sobre';
 import { Envios } from './pages/Envios';
 import { Trocas } from './pages/Trocas';
@@ -30,6 +35,13 @@ function App() {
           element={<PaymentResult kind="pendente" />}
         />
         <Route path="/pagamento/erro" element={<PaymentResult kind="erro" />} />
+        <Route path="/entrar" element={<CustomerAuth />} />
+        <Route path="/minha-conta" element={<AccountLayout />}>
+          <Route index element={<AccountOrders />} />
+          <Route path="dados" element={<AccountData />} />
+          <Route path="enderecos" element={<AccountAddresses />} />
+          <Route path="pedidos" element={<AccountOrders />} />
+        </Route>
       </Route>
       <Route path="/sobre" element={<Sobre />} />
       <Route path="/envios" element={<Envios />} />

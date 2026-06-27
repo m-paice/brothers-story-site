@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchOrders, updateOrderStatus } from '../../lib/orders';
+import {
+  fetchOrders,
+  updateOrderStatus,
+  updateOrderTracking,
+} from '../../lib/orders';
 import { formatPrice } from '../../utils/format';
 import {
   ORDER_STATUS_META,
@@ -14,6 +18,8 @@ const STATUSES: OrderStatus[] = [
   'em_contato',
   'pago',
   'confirmado',
+  'enviado',
+  'entregue',
   'cancelado',
 ];
 
@@ -32,6 +38,24 @@ export function OrdersAdmin() {
   const [filter, setFilter] = useState<OrderStatus | 'todos'>('todos');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>(
+    {}
+  );
+
+  const handleSaveTracking = async (order: Order) => {
+    const code = (trackingDrafts[order.id] ?? '').trim();
+    setActionError(null);
+    setOrders((prev) =>
+      prev.map((o) => (o.id === order.id ? { ...o, tracking_code: code } : o))
+    );
+    try {
+      await updateOrderTracking(order.id, code);
+    } catch (err) {
+      console.error('Falha ao salvar rastreio:', err);
+      setActionError('Não foi possível salvar o código de rastreio.');
+      load();
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -237,6 +261,34 @@ export function OrdersAdmin() {
                             {ORDER_STATUS_META[s].label}
                           </button>
                         ))}
+                      </div>
+                    </div>
+
+                    <div className="order-detail__tracking">
+                      <span className="order-detail__title">
+                        Código de rastreio
+                      </span>
+                      <div className="order-detail__tracking-row">
+                        <input
+                          type="text"
+                          className="admin-search"
+                          placeholder="Ex.: BR123456789BR"
+                          value={
+                            trackingDrafts[order.id] ?? order.tracking_code ?? ''
+                          }
+                          onChange={(e) =>
+                            setTrackingDrafts((prev) => ({
+                              ...prev,
+                              [order.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <button
+                          className="admin-btn admin-btn--ghost"
+                          onClick={() => handleSaveTracking(order)}
+                        >
+                          Salvar
+                        </button>
                       </div>
                     </div>
                   </div>

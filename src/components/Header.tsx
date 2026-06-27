@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PRIMARY_NAV } from '../data/navigation';
+import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
   search: string;
@@ -21,6 +22,7 @@ export function Header({
 }: HeaderProps) {
   // Busca expandível no desktop (no mobile a barra fica sempre visível via CSS)
   const [searchOpen, setSearchOpen] = useState(false);
+  const { session } = useAuth();
 
   return (
     <header className="header">
@@ -56,6 +58,15 @@ export function Header({
           >
             <SearchIcon />
           </button>
+
+          <Link
+            to={session ? '/minha-conta' : '/entrar'}
+            className="header__icon-btn"
+            aria-label={session ? 'Minha conta' : 'Entrar'}
+            title={session ? 'Minha conta' : 'Entrar'}
+          >
+            <UserIcon />
+          </Link>
 
           <button
             className="header__icon-btn header__cart"
@@ -106,6 +117,23 @@ function SearchIcon() {
     >
       <circle cx="11" cy="11" r="7" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="19"
+      height="19"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
     </svg>
   );
 }
