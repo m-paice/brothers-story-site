@@ -357,13 +357,6 @@ export function ProductFormModal({
                       <span className="img-row__ph">sem imagem</span>
                     )}
                   </span>
-                  <input
-                    type="url"
-                    className="img-row__url"
-                    placeholder="Cole o link da imagem"
-                    value={url}
-                    onChange={(e) => setImage(i, e.target.value)}
-                  />
                   <label
                     className={`img-row__upload ${uploading.has(i) ? 'img-row__upload--loading' : ''}`}
                   >
