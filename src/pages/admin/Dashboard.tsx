@@ -19,9 +19,13 @@ import {
 import type { Product } from '../../types/product';
 
 const ORDER_STATUSES: OrderStatus[] = [
+  'aguardando_pagamento',
+  'pago',
+  'confirmado',
+  'enviado',
+  'entregue',
   'novo',
   'em_contato',
-  'confirmado',
   'cancelado',
 ];
 
