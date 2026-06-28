@@ -46,6 +46,38 @@ function ProductView({ id }: { id: number }) {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!product) return;
+
+    document.title = `${product.name} — Brothers Story`;
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'product-ld-json';
+    script.text = JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.name,
+      description: product.description,
+      image: product.image,
+      offers: {
+        '@type': 'Offer',
+        price: product.price,
+        priceCurrency: 'BRL',
+        availability:
+          product.stock > 0
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+      },
+    });
+    document.head.appendChild(script);
+
+    return () => {
+      document.title = 'Brothers Story — Moda Masculina';
+      document.getElementById('product-ld-json')?.remove();
+    };
+  }, [product]);
+
   if (loading) {
     return (
       <main className="content container">

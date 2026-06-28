@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { InfoLayout } from '../components/InfoLayout';
 import { useSettings } from '../context/SettingsContext';
 import { renderBody } from '../utils/body';
@@ -6,6 +7,13 @@ export function Contato() {
   const { settings } = useSettings();
   const { title, subtitle, body } = settings.pages.contato;
   const { instagram_url, whatsapp_url } = settings.store;
+
+  useEffect(() => {
+    document.title = `${title} — Brothers Story`;
+    return () => {
+      document.title = 'Brothers Story — Moda Masculina';
+    };
+  }, [title]);
 
   return (
     <InfoLayout title={title} subtitle={subtitle}>
