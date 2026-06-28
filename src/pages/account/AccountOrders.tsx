@@ -126,7 +126,11 @@ export function AccountOrders() {
                         <li key={item.variant_id ?? `${item.id}-${i}`}>
                           <span>
                             {item.qty}× {item.name}
-                            {item.size ? ` (${item.size})` : ''}
+                            {item.color || item.size
+                              ? ` (${[item.color, item.size]
+                                  .filter(Boolean)
+                                  .join(' ')})`
+                              : ''}
                           </span>
                           <span>{formatPrice(item.price * item.qty)}</span>
                         </li>

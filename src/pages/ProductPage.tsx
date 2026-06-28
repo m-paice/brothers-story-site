@@ -4,6 +4,7 @@ import { fetchProduct } from '../lib/products';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/format';
 import { resolveImageUrl } from '../utils/image';
+import { colorToHex } from '../utils/color';
 import type { Product } from '../types/product';
 
 // Remonta a cada id (key) para resetar o estado sem setState síncrono no effect.
@@ -17,7 +18,8 @@ function ProductView({ id }: { id: number }) {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [variantId, setVariantId] = useState<number | null>(null);
+  const [selColor, setSelColor] = useState<string | null>(null);
+  const [selSize, setSelSize] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
   const [imgIndex, setImgIndex] = useState(0);
 
@@ -25,11 +27,18 @@ function ProductView({ id }: { id: number }) {
     let active = true;
     fetchProduct(id)
       .then((p) => {
-        if (!active) return;
+        if (!active || !p) return;
         setProduct(p);
-        // Pré-seleciona o primeiro tamanho com estoque.
-        const first = p?.variants.find((v) => v.stock > 0) ?? p?.variants[0];
-        setVariantId(first?.id ?? null);
+        // Pré-seleciona a 1ª cor com estoque e o 1º tamanho dessa cor.
+        const colors = [...new Set(p.variants.map((v) => v.color).filter(Boolean))];
+        const color =
+          colors.find((c) => p.variants.some((v) => v.color === c && v.stock > 0)) ??
+          colors[0] ??
+          null;
+        const pool = color ? p.variants.filter((v) => v.color === color) : p.variants;
+        const size = (pool.find((v) => v.stock > 0) ?? pool[0])?.size ?? null;
+        setSelColor(color);
+        setSelSize(size);
       })
       .finally(() => active && setLoading(false));
     return () => {
@@ -60,7 +69,22 @@ function ProductView({ id }: { id: number }) {
     );
   }
 
-  const variant = product.variants.find((v) => v.id === variantId) ?? null;
+  // Cores e tamanhos (estoque por combinação).
+  const colors = [...new Set(product.variants.map((v) => v.color).filter(Boolean))];
+  const hasColor = colors.length > 0;
+  const sizePool = hasColor
+    ? product.variants.filter((v) => v.color === selColor)
+    : product.variants;
+  const sizes = [...new Set(sizePool.map((v) => v.size))];
+  const stockOfSize = (size: string) =>
+    sizePool.find((v) => v.size === size)?.stock ?? 0;
+  const colorHasStock = (color: string) =>
+    product.variants.some((v) => v.color === color && v.stock > 0);
+
+  const variant =
+    product.variants.find(
+      (v) => (hasColor ? v.color === selColor : true) && v.size === selSize
+    ) ?? null;
   const maxQty = variant?.stock ?? 0;
   const isOnSale = product.discount > 0;
   const favorite = isFavorite(product.id);
@@ -70,8 +94,14 @@ function ProductView({ id }: { id: number }) {
   const showImg = (i: number) =>
     setImgIndex(((i % gallery.length) + gallery.length) % gallery.length);
 
-  const selectSize = (vid: number) => {
-    setVariantId(vid);
+  const selectColor = (c: string) => {
+    setSelColor(c);
+    const pool = product.variants.filter((v) => v.color === c);
+    setSelSize((pool.find((v) => v.stock > 0) ?? pool[0])?.size ?? null);
+    setQty(1);
+  };
+  const selectSize = (s: string) => {
+    setSelSize(s);
     setQty(1);
   };
 
@@ -84,6 +114,7 @@ function ProductView({ id }: { id: number }) {
         name: product.name,
         price: product.price,
         image: product.image,
+        color: variant.color,
         size: variant.size,
       },
       qty
@@ -162,22 +193,59 @@ function ProductView({ id }: { id: number }) {
 
           <p className="pdp__description">{product.description}</p>
 
+          {hasColor && (
+            <div className="pdp__sizes">
+              <span className="pdp__sizes-label">
+                Cor{selColor ? `: ${selColor}` : ''}
+              </span>
+              <div className="pdp__sizes-list">
+                {colors.map((c) => {
+                  const hex = colorToHex(c);
+                  const out = !colorHasStock(c);
+                  return (
+                    <button
+                      key={c}
+                      className={`pdp__color ${
+                        selColor === c ? 'pdp__color--active' : ''
+                      }`}
+                      onClick={() => selectColor(c)}
+                      disabled={out}
+                      title={out ? 'Esgotado' : c}
+                    >
+                      {hex && (
+                        <span
+                          className="pdp__swatch"
+                          style={{ background: hex }}
+                          aria-hidden="true"
+                        />
+                      )}
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="pdp__sizes">
             <span className="pdp__sizes-label">Tamanho</span>
             <div className="pdp__sizes-list">
-              {product.variants.map((v) => (
-                <button
-                  key={v.id}
-                  className={`pdp__size ${
-                    variantId === v.id ? 'pdp__size--active' : ''
-                  }`}
-                  onClick={() => selectSize(v.id)}
-                  disabled={v.stock <= 0}
-                  title={v.stock <= 0 ? 'Esgotado' : undefined}
-                >
-                  {v.size}
-                </button>
-              ))}
+              {sizes.map((s) => {
+                const stock = stockOfSize(s);
+                return (
+                  <button
+                    key={s}
+                    className={`pdp__size ${
+                      selSize === s ? 'pdp__size--active' : ''
+                    }`}
+                    onClick={() => selectSize(s)}
+                    disabled={stock <= 0}
+                    title={stock <= 0 ? 'Esgotado' : undefined}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

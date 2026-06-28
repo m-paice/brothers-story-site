@@ -1104,13 +1104,15 @@
   display: flex;
   gap: var(--space-2);
 }
+.variant-row__color,
 .variant-row__size {
   flex: 1;
   min-width: 0;
 }
 .variant-row__stock {
-  flex: 0 0 96px;
+  flex: 0 0 84px;
 }
+.variant-row__color,
 .variant-row__size,
 .variant-row__stock {
   height: 40px;
@@ -1121,6 +1123,7 @@
   color: var(--color-text);
   font-size: 0.86rem;
 }
+.variant-row__color:focus,
 .variant-row__size:focus,
 .variant-row__stock:focus {
   border-color: var(--color-accent);

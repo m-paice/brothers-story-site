@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const { data: variants, error: vErr } = await supabase
       .from('product_variants')
       .select(
-        'id, size, stock, product:products(id, name, price, weight, height, width, length)'
+        'id, color, size, stock, product:products(id, name, price, weight, height, width, length)'
       )
       .in('id', variantIds);
 
@@ -91,11 +91,13 @@ Deno.serve(async (req) => {
     // Monta os itens do pedido com preços confiáveis (do banco).
     const orderItems = (items as ReqItem[]).map((reqItem) => {
       const product = productOf(reqItem.variant_id);
+      const v = (variants ?? []).find((x) => x.id === reqItem.variant_id);
       const qty = Math.max(1, Number(reqItem.qty) || 1);
       return {
         id: product.id,
         variant_id: reqItem.variant_id,
-        size: (variants ?? []).find((x) => x.id === reqItem.variant_id)?.size,
+        color: v?.color ?? null,
+        size: v?.size ?? null,
         name: product.name,
         price: Number(product.price),
         qty,

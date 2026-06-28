@@ -3,6 +3,7 @@
 // Variação de um produto (tamanho) com estoque próprio
 export interface ProductVariant {
   id: number;
+  color: string; // vazio = produto sem dimensão de cor
   size: string;
   stock: number;
 }

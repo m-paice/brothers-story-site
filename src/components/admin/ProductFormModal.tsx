@@ -12,6 +12,7 @@ interface ProductFormModalProps {
 }
 
 interface VariantRow {
+  color: string;
   size: string;
   stock: string;
 }
@@ -45,7 +46,7 @@ const emptyForm = (): FormState => ({
   height: '',
   width: '',
   length: '',
-  variants: [{ size: '', stock: '' }],
+  variants: [{ color: '', size: '', stock: '' }],
 });
 
 export function ProductFormModal({
@@ -95,10 +96,11 @@ export function ProductFormModal({
               variants:
                 product.variants.length > 0
                   ? product.variants.map((v) => ({
+                      color: v.color,
                       size: v.size,
                       stock: String(v.stock),
                     }))
-                  : [{ size: '', stock: '' }],
+                  : [{ color: '', size: '', stock: '' }],
             }
           : emptyForm()
       );
@@ -112,7 +114,7 @@ export function ProductFormModal({
     }));
 
   const addVariant = () =>
-    setForm((f) => ({ ...f, variants: [...f.variants, { size: '', stock: '' }] }));
+    setForm((f) => ({ ...f, variants: [...f.variants, { color: '', size: '', stock: '' }] }));
 
   const removeVariant = (index: number) =>
     setForm((f) => ({
@@ -142,7 +144,11 @@ export function ProductFormModal({
     event.preventDefault();
 
     const variants = form.variants
-      .map((v) => ({ size: v.size.trim(), stock: Number(v.stock) || 0 }))
+      .map((v) => ({
+        color: v.color.trim(),
+        size: v.size.trim(),
+        stock: Number(v.stock) || 0,
+      }))
       .filter((v) => v.size !== '');
 
     if (variants.length === 0) {
@@ -275,9 +281,16 @@ export function ProductFormModal({
               {form.variants.map((v, i) => (
                 <div className="variant-row" key={i}>
                   <input
+                    className="variant-row__color"
+                    type="text"
+                    placeholder="Cor (opcional)"
+                    value={v.color}
+                    onChange={(e) => setVariant(i, { color: e.target.value })}
+                  />
+                  <input
                     className="variant-row__size"
                     type="text"
-                    placeholder="Tamanho (P, M, 42, Único…)"
+                    placeholder="Tamanho"
                     value={v.size}
                     onChange={(e) => setVariant(i, { size: e.target.value })}
                   />

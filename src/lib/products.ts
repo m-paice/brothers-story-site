@@ -5,6 +5,7 @@ import { products as seedProducts } from '../data/products';
 // Linha crua da tabela `products` (snake_case do Postgres), com as variações.
 interface VariantRow {
   id: number;
+  color: string;
   size: string;
   stock: number;
 }
@@ -27,6 +28,7 @@ interface ProductRow {
 
 // Variação editável no admin (sem id ao criar)
 export interface VariantInput {
+  color: string;
   size: string;
   stock: number;
 }
@@ -47,7 +49,7 @@ const pct = (original: number, price: number): number =>
 // Converte a linha do banco para o tipo usado na UI
 function rowToProduct(row: ProductRow): Product {
   const variants: ProductVariant[] = (row.product_variants ?? [])
-    .map((v) => ({ id: v.id, size: v.size, stock: v.stock }))
+    .map((v) => ({ id: v.id, color: v.color ?? '', size: v.size, stock: v.stock }))
     .sort((a, b) => a.id - b.id);
   const stock = variants.reduce((sum, v) => sum + v.stock, 0);
 
@@ -99,7 +101,11 @@ function productToRow(input: ProductInput) {
 // Variações válidas (com tamanho preenchido)
 const cleanVariants = (variants: VariantInput[]) =>
   variants
-    .map((v) => ({ size: v.size.trim(), stock: Number(v.stock) || 0 }))
+    .map((v) => ({
+      color: v.color.trim(),
+      size: v.size.trim(),
+      stock: Number(v.stock) || 0,
+    }))
     .filter((v) => v.size !== '');
 
 // Catálogo estático (modo offline, sem Supabase) — já traz variação "Único".
@@ -138,6 +144,7 @@ async function syncVariants(productId: number, variants: VariantInput[]) {
   await supabase.from('product_variants').delete().eq('product_id', productId);
   const rows = cleanVariants(variants).map((v) => ({
     product_id: productId,
+    color: v.color,
     size: v.size,
     stock: v.stock,
   }));

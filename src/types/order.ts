@@ -30,7 +30,8 @@ export interface OrderShipping {
 // Snapshot do item no momento do pedido (preço congelado)
 export interface OrderItem {
   id: number; // id do produto
-  variant_id: number | null; // id da variação (tamanho)
+  variant_id: number | null; // id da variação
+  color?: string | null;
   size: string | null;
   name: string;
   price: number;

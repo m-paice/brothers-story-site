@@ -5,7 +5,8 @@ export type PaymentMethod = 'pix' | 'cartao' | 'dinheiro' | 'prazo';
 // Snapshot do item no momento da venda
 export interface SaleItem {
   id: number; // id do produto
-  variant_id: number | null; // id da variação (tamanho)
+  variant_id: number | null; // id da variação
+  color?: string | null;
   size: string | null;
   name: string;
   price: number;

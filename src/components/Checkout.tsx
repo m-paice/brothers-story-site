@@ -207,6 +207,7 @@ export function Checkout({
       items: entries.map((e) => ({
         id: e.productId,
         variant_id: e.variantId,
+        color: e.color,
         size: e.size,
         name: e.name,
         price: e.price,
@@ -489,7 +490,8 @@ export function Checkout({
                     <div className="checkout__item-info">
                       <p className="checkout__item-name">{e.name}</p>
                       <p className="checkout__item-qty">
-                        Tam. {e.size} · Qtd: {e.qty}
+                        {e.color ? `${e.color} · ` : ''}Tam. {e.size} · Qtd:{' '}
+                        {e.qty}
                       </p>
                     </div>
                     <span className="checkout__item-price">

@@ -159,7 +159,7 @@ export const products: Product[] = seeds.map((s) => ({
   discount: pct(s.originalPrice, s.price),
   stock: s.stock,
   // Modo offline: uma variação "Único" com o estoque do seed.
-  variants: [{ id: s.id, size: 'Único', stock: s.stock }],
+  variants: [{ id: s.id, color: '', size: 'Único', stock: s.stock }],
   category: s.category,
   description: s.description,
   image: img(s.seed),

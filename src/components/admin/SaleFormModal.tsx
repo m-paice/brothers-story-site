@@ -141,6 +141,7 @@ export function SaleFormModal({
       items: cartLines.map(({ product, variant, qty }) => ({
         id: product.id,
         variant_id: variant.id,
+        color: variant.color,
         size: variant.size,
         name: product.name,
         price: product.price,
@@ -238,7 +239,7 @@ export function SaleFormModal({
                                     : `${v.stock} em estoque`
                                 }
                               >
-                                {v.size}
+                                {[v.color, v.size].filter(Boolean).join(' ')}
                               </button>
                             );
                           })}
@@ -270,7 +271,9 @@ export function SaleFormModal({
                       <div className="checkout__item-info">
                         <p className="checkout__item-name">
                           {product.name}{' '}
-                          <span className="sale-item__size">{variant.size}</span>
+                          <span className="sale-item__size">
+                            {[variant.color, variant.size].filter(Boolean).join(' ')}
+                          </span>
                         </p>
                         <div className="sale-qty">
                           <button

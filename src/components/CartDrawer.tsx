@@ -69,7 +69,9 @@ export function CartDrawer({
                   />
                   <div className="drawer__info">
                     <p className="drawer__name">{entry.name}</p>
-                    <p className="drawer__size">Tamanho: {entry.size}</p>
+                    <p className="drawer__size">
+                      {entry.color ? `${entry.color} · ` : ''}Tam. {entry.size}
+                    </p>
                     <p className="drawer__price">{formatPrice(entry.price)}</p>
                     <div className="drawer__qty">
                       <button
