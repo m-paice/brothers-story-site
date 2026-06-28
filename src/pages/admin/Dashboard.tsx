@@ -34,11 +34,59 @@ const PAYMENT_COLORS: Record<PaymentMethod, string> = {
   prazo: 'var(--color-warning)',
 };
 
+type Period = 'hoje' | '7d' | '30d' | 'mes' | 'tudo';
+
+const PERIODS: { value: Period; label: string }[] = [
+  { value: 'hoje', label: 'Hoje' },
+  { value: '7d', label: '7 dias' },
+  { value: '30d', label: '30 dias' },
+  { value: 'mes', label: 'Este mês' },
+  { value: 'tudo', label: 'Tudo' },
+];
+
+// Início do período (ms epoch) a partir de "agora" — null = sem limite.
+function periodStart(period: Period, now: number): number | null {
+  const d = new Date(now);
+  switch (period) {
+    case 'hoje':
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    case '7d':
+      return now - 7 * 86400000;
+    case '30d':
+      return now - 30 * 86400000;
+    case 'mes':
+      return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+    default:
+      return null;
+  }
+}
+
 export function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>('30d');
+  // "agora" capturado uma vez (impureza só no inicializador do useState).
+  const [now] = useState(() => Date.now());
+
+  // Filtra pedidos/vendas pelo período selecionado (por created_at).
+  const since = periodStart(period, now);
+  const periodOrders = useMemo(
+    () =>
+      since === null
+        ? orders
+        : orders.filter((o) => new Date(o.created_at).getTime() >= since),
+    [orders, since]
+  );
+  const periodSales = useMemo(
+    () =>
+      since === null
+        ? sales
+        : sales.filter((s) => new Date(s.created_at).getTime() >= since),
+    [sales, since]
+  );
 
   // Carregados de forma independente: uma falha em um não derruba os demais.
   useEffect(() => {
@@ -55,40 +103,43 @@ export function Dashboard() {
   }, []);
 
   const orderStats = useMemo(() => {
-    const novos = orders.filter((o) => o.status === 'novo').length;
-    const receita = orders
-      .filter((o) => o.status === 'confirmado')
+    const novos = periodOrders.filter((o) => o.status === 'novo').length;
+    const receita = periodOrders
+      .filter((o) => o.status === 'confirmado' || o.status === 'pago')
       .reduce((sum, o) => sum + Number(o.total), 0);
 
     const byStatus = ORDER_STATUSES.map((s) => ({
       status: s,
-      count: orders.filter((o) => o.status === s).length,
+      count: periodOrders.filter((o) => o.status === s).length,
     }));
     const maxStatus = Math.max(1, ...byStatus.map((b) => b.count));
 
-    return { total: orders.length, novos, receita, byStatus, maxStatus };
-  }, [orders]);
+    return { total: periodOrders.length, novos, receita, byStatus, maxStatus };
+  }, [periodOrders]);
 
   const saleStats = useMemo(() => {
-    const withStatus = sales.map((s) => ({ sale: s, status: getSaleStatus(s) }));
-    const recebido = sales
+    const withStatus = periodSales.map((s) => ({
+      sale: s,
+      status: getSaleStatus(s),
+    }));
+    const recebido = periodSales
       .filter((s) => s.paid)
       .reduce((sum, s) => sum + Number(s.total), 0);
-    const aReceber = sales
+    const aReceber = periodSales
       .filter((s) => !s.paid)
       .reduce((sum, s) => sum + Number(s.total), 0);
     const vencidas = withStatus.filter((s) => s.status === 'vencido');
 
     const byPayment = PAYMENTS.map((method) => ({
       method,
-      total: sales
+      total: periodSales
         .filter((s) => s.payment_method === method)
         .reduce((sum, s) => sum + Number(s.total), 0),
     }));
     const maxPay = Math.max(1, ...byPayment.map((b) => b.total));
 
     return {
-      total: sales.length,
+      total: periodSales.length,
       recebido,
       aReceber,
       vencidasCount: vencidas.length,
@@ -96,7 +147,7 @@ export function Dashboard() {
       byPayment,
       maxPay,
     };
-  }, [sales]);
+  }, [periodSales]);
 
   const catalog = useMemo(() => {
     const baixo = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
@@ -104,8 +155,8 @@ export function Dashboard() {
     return { total: products.length, baixo, semEstoque };
   }, [products]);
 
-  const recentOrders = orders.slice(0, 6);
-  const recentSales = sales.slice(0, 6);
+  const recentOrders = periodOrders.slice(0, 6);
+  const recentSales = periodSales.slice(0, 6);
 
   if (loading) {
     return (
@@ -119,8 +170,23 @@ export function Dashboard() {
   return (
     <div className="dash">
       <div className="admin-page__head">
-        <h1 className="admin-page__title">Dashboard</h1>
-        <p className="admin-page__subtitle">Visão geral da loja</p>
+        <div>
+          <h1 className="admin-page__title">Dashboard</h1>
+          <p className="admin-page__subtitle">Visão geral da loja</p>
+        </div>
+        <div className="admin-filters dash__period">
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              className={`admin-chip ${
+                period === p.value ? 'admin-chip--active' : ''
+              }`}
+              onClick={() => setPeriod(p.value)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ---- Pedidos (loja online) ---- */}
@@ -133,11 +199,11 @@ export function Dashboard() {
           <span className="stat-card__hint">{orderStats.novos} novo(s)</span>
         </article>
         <article className="stat-card">
-          <span className="stat-card__label">Receita confirmada</span>
+          <span className="stat-card__label">Receita de pedidos</span>
           <strong className="stat-card__value">
             {formatPrice(orderStats.receita)}
           </strong>
-          <span className="stat-card__hint">pedidos confirmados</span>
+          <span className="stat-card__hint">pagos/confirmados no período</span>
         </article>
         <article className="stat-card">
           <span className="stat-card__label">Produtos</span>
