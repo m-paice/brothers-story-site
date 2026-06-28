@@ -163,6 +163,7 @@ export const products: Product[] = seeds.map((s) => ({
   category: s.category,
   description: s.description,
   image: img(s.seed),
+  images: [img(s.seed)],
   isNew: s.isNew ?? false,
   isFavorite: false,
   weight: 0.3,

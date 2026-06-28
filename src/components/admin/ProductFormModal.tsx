@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { Product } from '../../types/product';
 import type { ProductInput } from '../../lib/products';
+import { resolveImageUrl } from '../../utils/image';
 
 interface ProductFormModalProps {
   open: boolean;
@@ -21,7 +22,8 @@ interface FormState {
   originalPrice: string;
   category: string;
   description: string;
-  image: string;
+  images: string[];
+  cover: number;
   isNew: boolean;
   weight: string;
   height: string;
@@ -36,7 +38,8 @@ const emptyForm = (): FormState => ({
   originalPrice: '',
   category: '',
   description: '',
-  image: '',
+  images: [''],
+  cover: 0,
   isNew: false,
   weight: '',
   height: '',
@@ -71,7 +74,19 @@ export function ProductFormModal({
               originalPrice: String(product.originalPrice),
               category: product.category,
               description: product.description,
-              image: product.image,
+              images:
+                product.images.length > 0
+                  ? product.images
+                  : product.image
+                  ? [product.image]
+                  : [''],
+              cover: Math.max(
+                0,
+                (product.images.length > 0
+                  ? product.images
+                  : [product.image]
+                ).indexOf(product.image)
+              ),
               isNew: product.isNew,
               weight: String(product.weight),
               height: String(product.height),
@@ -105,6 +120,24 @@ export function ProductFormModal({
       variants: f.variants.filter((_, i) => i !== index),
     }));
 
+  const setImage = (index: number, url: string) =>
+    setForm((f) => ({
+      ...f,
+      images: f.images.map((u, i) => (i === index ? url : u)),
+    }));
+
+  const addImage = () =>
+    setForm((f) => ({ ...f, images: [...f.images, ''] }));
+
+  const removeImage = (index: number) =>
+    setForm((f) => {
+      const images = f.images.filter((_, i) => i !== index);
+      const cover = f.cover >= images.length ? Math.max(0, images.length - 1) : f.cover;
+      return { ...f, images: images.length ? images : [''], cover };
+    });
+
+  const setCover = (index: number) => setForm((f) => ({ ...f, cover: index }));
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -116,6 +149,11 @@ export function ProductFormModal({
       setError('Adicione ao menos um tamanho.');
       return;
     }
+
+    // Galeria: remove vazios; capa = a escolhida (ou a primeira).
+    const coverUrl = (form.images[form.cover] ?? '').trim();
+    const images = form.images.map((u) => u.trim()).filter(Boolean);
+    const image = coverUrl && images.includes(coverUrl) ? coverUrl : images[0] ?? '';
 
     setSaving(true);
     setError(null);
@@ -129,7 +167,8 @@ export function ProductFormModal({
       originalPrice: original,
       category: form.category.trim(),
       description: form.description.trim(),
-      image: form.image.trim(),
+      image,
+      images,
       isNew: form.isNew,
       weight: Number(form.weight) || 0,
       height: Number(form.height) || 0,
@@ -271,14 +310,59 @@ export function ProductFormModal({
             </div>
           </div>
 
+          {/* Imagens (galeria) — escolha a capa */}
           <div className="checkout__field">
-            <label htmlFor="pf-image">URL da imagem</label>
-            <input
-              id="pf-image"
-              type="url"
-              value={form.image}
-              onChange={(e) => setForm({ ...form, image: e.target.value })}
-            />
+            <label>Imagens (escolha a capa)</label>
+            <div className="img-editor">
+              {form.images.map((url, i) => (
+                <div className="img-row" key={i}>
+                  <span className="img-row__preview">
+                    {url.trim() ? (
+                      <img src={resolveImageUrl(url, 120)} alt="" />
+                    ) : (
+                      <span className="img-row__ph">sem imagem</span>
+                    )}
+                  </span>
+                  <input
+                    type="url"
+                    className="img-row__url"
+                    placeholder="Cole o link da imagem"
+                    value={url}
+                    onChange={(e) => setImage(i, e.target.value)}
+                  />
+                  <label
+                    className={`img-row__cover ${
+                      form.cover === i ? 'img-row__cover--active' : ''
+                    }`}
+                    title="Definir como capa"
+                  >
+                    <input
+                      type="radio"
+                      name="cover"
+                      checked={form.cover === i}
+                      onChange={() => setCover(i)}
+                    />
+                    Capa
+                  </label>
+                  <button
+                    type="button"
+                    className="variant-row__remove"
+                    onClick={() => removeImage(i)}
+                    disabled={form.images.length === 1}
+                    aria-label="Remover imagem"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="variant-editor__add"
+                onClick={addImage}
+              >
+                + Adicionar imagem
+              </button>
+            </div>
           </div>
 
           {/* Frete: peso e dimensões */}

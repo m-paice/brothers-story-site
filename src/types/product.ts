@@ -17,7 +17,8 @@ export interface Product {
   variants: ProductVariant[]; // tamanhos disponíveis
   category: string;
   description: string;
-  image: string; // URL da imagem
+  image: string; // URL da capa
+  images: string[]; // galeria (ordenada) para o carrossel
   isNew: boolean;
   isFavorite: boolean;
   // Frete (SuperFrete): peso em kg, dimensões em cm

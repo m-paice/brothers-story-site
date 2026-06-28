@@ -16,6 +16,7 @@ interface ProductRow {
   category: string;
   description: string;
   image: string;
+  images: string[] | null;
   is_new: boolean;
   weight: number;
   height: number;
@@ -61,6 +62,12 @@ function rowToProduct(row: ProductRow): Product {
     category: row.category,
     description: row.description,
     image: row.image,
+    images:
+      Array.isArray(row.images) && row.images.length > 0
+        ? row.images
+        : row.image
+        ? [row.image]
+        : [],
     isNew: row.is_new,
     isFavorite: false,
     weight: Number(row.weight ?? DEFAULT_DIMS.weight),
@@ -80,6 +87,7 @@ function productToRow(input: ProductInput) {
     category: input.category,
     description: input.description,
     image: input.image,
+    images: input.images,
     is_new: input.isNew,
     weight: input.weight || DEFAULT_DIMS.weight,
     height: input.height || DEFAULT_DIMS.height,

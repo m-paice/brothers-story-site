@@ -19,6 +19,7 @@ function ProductView({ id }: { id: number }) {
   const [loading, setLoading] = useState(true);
   const [variantId, setVariantId] = useState<number | null>(null);
   const [qty, setQty] = useState(1);
+  const [imgIndex, setImgIndex] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -64,6 +65,11 @@ function ProductView({ id }: { id: number }) {
   const isOnSale = product.discount > 0;
   const favorite = isFavorite(product.id);
 
+  const gallery = product.images.length > 0 ? product.images : [product.image];
+  const current = Math.min(imgIndex, gallery.length - 1);
+  const showImg = (i: number) =>
+    setImgIndex(((i % gallery.length) + gallery.length) % gallery.length);
+
   const selectSize = (vid: number) => {
     setVariantId(vid);
     setQty(1);
@@ -91,14 +97,54 @@ function ProductView({ id }: { id: number }) {
       </Link>
 
       <div className="pdp">
-        <div className="pdp__media">
-          <img src={resolveImageUrl(product.image, 1000)} alt={product.name} />
-          <div className="card__badges">
-            {product.isNew && <span className="badge badge--new">NOVO</span>}
-            {isOnSale && (
-              <span className="badge badge--sale">-{product.discount}%</span>
+        <div className="pdp__gallery">
+          <div className="pdp__media">
+            <img
+              src={resolveImageUrl(gallery[current], 1000)}
+              alt={product.name}
+            />
+            <div className="card__badges">
+              {product.isNew && <span className="badge badge--new">NOVO</span>}
+              {isOnSale && (
+                <span className="badge badge--sale">-{product.discount}%</span>
+              )}
+            </div>
+            {gallery.length > 1 && (
+              <>
+                <button
+                  className="pdp__nav pdp__nav--prev"
+                  onClick={() => showImg(current - 1)}
+                  aria-label="Imagem anterior"
+                >
+                  ‹
+                </button>
+                <button
+                  className="pdp__nav pdp__nav--next"
+                  onClick={() => showImg(current + 1)}
+                  aria-label="Próxima imagem"
+                >
+                  ›
+                </button>
+              </>
             )}
           </div>
+
+          {gallery.length > 1 && (
+            <div className="pdp__thumbs">
+              {gallery.map((url, i) => (
+                <button
+                  key={i}
+                  className={`pdp__thumb ${
+                    i === current ? 'pdp__thumb--active' : ''
+                  }`}
+                  onClick={() => setImgIndex(i)}
+                  aria-label={`Imagem ${i + 1}`}
+                >
+                  <img src={resolveImageUrl(url, 160)} alt="" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="pdp__info">
