@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import type { Product } from '../../types/product';
 import type { ProductInput } from '../../lib/products';
 import { resolveImageUrl } from '../../utils/image';
@@ -60,8 +60,6 @@ export function ProductFormModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<Set<number>>(new Set());
-  // kept for potential future use (e.g. programmatic click on a specific row)
-  const _fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Sincroniza o formulário a cada nova abertura do modal — padrão do React de
   // ajustar estado durante a renderização (sem useEffect).

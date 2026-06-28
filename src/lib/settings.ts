@@ -88,6 +88,7 @@ Fale com a gente pelo WhatsApp informando o número do pedido e o motivo da troc
 };
 
 export async function fetchSettings(): Promise<StoreSettings> {
+  if (!supabase) return DEFAULT_SETTINGS;
   const { data, error } = await supabase
     .from('store_settings')
     .select('data')
@@ -112,6 +113,7 @@ export async function fetchSettings(): Promise<StoreSettings> {
 }
 
 export async function saveSettings(settings: StoreSettings): Promise<void> {
+  if (!supabase) throw new Error('Supabase não configurado.');
   const { error } = await supabase.from('store_settings').upsert({
     id: 1,
     data: settings,
