@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import type { Product } from '../../types/product';
 import type { ProductInput } from '../../lib/products';
 import { resolveImageUrl } from '../../utils/image';
+import { uploadProductImage } from '../../lib/storage';
 
 interface ProductFormModalProps {
   open: boolean;
@@ -58,6 +59,9 @@ export function ProductFormModal({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<Set<number>>(new Set());
+  // kept for potential future use (e.g. programmatic click on a specific row)
+  const _fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Sincroniza o formulário a cada nova abertura do modal — padrão do React de
   // ajustar estado durante a renderização (sem useEffect).
@@ -139,6 +143,23 @@ export function ProductFormModal({
     });
 
   const setCover = (index: number) => setForm((f) => ({ ...f, cover: index }));
+
+  const handleUpload = async (index: number, file: File) => {
+    setUploading((prev) => new Set(prev).add(index));
+    try {
+      const url = await uploadProductImage(file);
+      setImage(index, url);
+    } catch (err) {
+      console.error('Falha ao enviar imagem:', err);
+      setError('Não foi possível enviar a imagem. Tente novamente.');
+    } finally {
+      setUploading((prev) => {
+        const next = new Set(prev);
+        next.delete(index);
+        return next;
+      });
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -343,6 +364,22 @@ export function ProductFormModal({
                     value={url}
                     onChange={(e) => setImage(i, e.target.value)}
                   />
+                  <label
+                    className={`img-row__upload ${uploading.has(i) ? 'img-row__upload--loading' : ''}`}
+                  >
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      disabled={uploading.has(i)}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUpload(i, file);
+                        e.target.value = ''; // permite re-selecionar o mesmo arquivo
+                      }}
+                    />
+                    {uploading.has(i) ? 'Enviando…' : '↑ Upload'}
+                  </label>
                   <label
                     className={`img-row__cover ${
                       form.cover === i ? 'img-row__cover--active' : ''
