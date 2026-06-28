@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
       const v = (variants ?? []).find((x) => x.id === item.variant_id);
       const p = (Array.isArray(v?.product) ? v?.product[0] : v?.product) ?? {};
       const unit = {
+        quantity: 1,
         weight: Number(p.weight ?? 0.3),
         height: Number(p.height ?? 2),
         width: Number(p.width ?? 11),
