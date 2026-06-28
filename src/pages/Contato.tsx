@@ -1,22 +1,20 @@
 import { InfoLayout } from '../components/InfoLayout';
-import { INSTAGRAM_URL, WHATSAPP_URL } from '../data/navigation';
+import { useSettings } from '../context/SettingsContext';
+import { renderBody } from '../utils/body';
 
 export function Contato() {
+  const { settings } = useSettings();
+  const { title, subtitle, body } = settings.pages.contato;
+  const { instagram_url, whatsapp_url } = settings.store;
+
   return (
-    <InfoLayout
-      title="Fale com a gente"
-      subtitle="Atendimento direto, sem complicação."
-    >
-      <p>
-        Dúvidas sobre tamanhos, disponibilidade, pedidos ou trocas? Nosso
-        atendimento é feito de forma próxima e direta. Escolha o canal de sua
-        preferência:
-      </p>
+    <InfoLayout title={title} subtitle={subtitle}>
+      {renderBody(body)}
 
       <div className="page__contact">
         <a
           className="contact-card contact-card--whatsapp"
-          href={WHATSAPP_URL}
+          href={whatsapp_url}
           target="_blank"
           rel="noreferrer"
         >
@@ -28,7 +26,7 @@ export function Contato() {
 
         <a
           className="contact-card"
-          href={INSTAGRAM_URL}
+          href={instagram_url}
           target="_blank"
           rel="noreferrer"
         >
@@ -38,12 +36,6 @@ export function Contato() {
           </span>
         </a>
       </div>
-
-      <p>
-        Preferimos o WhatsApp para tratar de pedidos: assim conseguimos
-        confirmar disponibilidade, combinar o pagamento e acompanhar a entrega
-        com você em tempo real.
-      </p>
     </InfoLayout>
   );
 }

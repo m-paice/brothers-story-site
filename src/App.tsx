@@ -18,6 +18,7 @@ import { Dashboard } from './pages/admin/Dashboard';
 import { ProductsAdmin } from './pages/admin/ProductsAdmin';
 import { OrdersAdmin } from './pages/admin/OrdersAdmin';
 import { SalesAdmin } from './pages/admin/SalesAdmin';
+import { SettingsAdmin } from './pages/admin/SettingsAdmin';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
 
 function App() {
@@ -61,6 +62,7 @@ function App() {
         <Route path="vendas" element={<SalesAdmin />} />
         <Route path="produtos" element={<ProductsAdmin />} />
         <Route path="pedidos" element={<OrdersAdmin />} />
+        <Route path="configuracoes" element={<SettingsAdmin />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

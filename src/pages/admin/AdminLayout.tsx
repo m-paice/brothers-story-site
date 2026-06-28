@@ -8,6 +8,7 @@ const NAV = [
   { to: '/admin/vendas', end: false, label: 'Vendas', icon: '$' },
   { to: '/admin/produtos', end: false, label: 'Produtos', icon: '▦' },
   { to: '/admin/pedidos', end: false, label: 'Pedidos', icon: '✦' },
+  { to: '/admin/configuracoes', end: false, label: 'Configurações', icon: '⚙' },
 ];
 
 export function AdminLayout() {
