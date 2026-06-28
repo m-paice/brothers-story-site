@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.brothersstory.com.br/sitemap.xml
+Sitemap: https://brothers-story.vercel.app/sitemap.xml
