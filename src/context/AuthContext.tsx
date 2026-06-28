@@ -23,6 +23,8 @@ interface AuthContextValue {
     nome: string
   ) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -89,6 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const resetPassword = async (email: string) => {
+    if (!supabase) throw new Error('Supabase não configurado.');
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
+    if (error) throw error;
+  };
+
+  const updatePassword = async (password: string) => {
+    if (!supabase) throw new Error('Supabase não configurado.');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw error;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -100,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signUp,
         signOut,
+        resetPassword,
+        updatePassword,
       }}
     >
       {children}

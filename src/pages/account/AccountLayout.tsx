@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 const NAV = [
   { to: '/minha-conta/dados', label: 'Dados pessoais' },
   { to: '/minha-conta/enderecos', label: 'Endereços' },
+  { to: '/minha-conta/senha', label: 'Segurança' },
   { to: '/minha-conta/pedidos', label: 'Pedidos' },
 ];
 

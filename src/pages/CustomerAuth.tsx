@@ -3,12 +3,12 @@ import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export function CustomerAuth() {
-  const { session, signIn, signUp, configured } = useAuth();
+  const { session, signIn, signUp, resetPassword, configured } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = params.get('next') || '/minha-conta';
 
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,6 +27,12 @@ export function CustomerAuth() {
       if (mode === 'login') {
         await signIn(email, password);
         navigate(next, { replace: true });
+      } else if (mode === 'forgot') {
+        await resetPassword(email);
+        setInfo(
+          'Se esse e-mail estiver cadastrado, você receberá o link em instantes.'
+        );
+        setMode('login');
       } else {
         const { needsConfirmation } = await signUp(email, password, nome);
         if (needsConfirmation) {
@@ -42,6 +48,8 @@ export function CustomerAuth() {
       setError(
         mode === 'login'
           ? 'E-mail ou senha inválidos.'
+          : mode === 'forgot'
+          ? 'Não foi possível enviar o e-mail. Tente novamente.'
           : 'Não foi possível criar a conta. O e-mail pode já estar em uso.'
       );
     } finally {
@@ -53,12 +61,14 @@ export function CustomerAuth() {
     <main className="content container">
       <div className="auth">
         <h1 className="auth__title">
-          {mode === 'login' ? 'Entrar' : 'Criar conta'}
+          {mode === 'login' ? 'Entrar' : mode === 'signup' ? 'Criar conta' : 'Recuperar senha'}
         </h1>
         <p className="auth__subtitle">
           {mode === 'login'
             ? 'Acesse sua conta para comprar e acompanhar seus pedidos.'
-            : 'Crie sua conta para finalizar a compra e acompanhar seus pedidos.'}
+            : mode === 'signup'
+            ? 'Crie sua conta para finalizar a compra e acompanhar seus pedidos.'
+            : 'Enviaremos um link de redefinição para o seu e-mail.'}
         </p>
 
         {!configured && (
@@ -90,18 +100,34 @@ export function CustomerAuth() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="checkout__field">
-            <label htmlFor="auth-password">Senha</label>
-            <input
-              id="auth-password"
-              type="password"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          {mode !== 'forgot' && (
+            <div className="checkout__field">
+              <label htmlFor="auth-password">Senha</label>
+              <input
+                id="auth-password"
+                type="password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          )}
+
+          {mode === 'login' && (
+            <button
+              type="button"
+              className="auth__toggle"
+              onClick={() => {
+                setMode('forgot');
+                setError(null);
+                setInfo(null);
+              }}
+            >
+              Esqueceu sua senha?
+            </button>
+          )}
 
           {error && <p className="checkout__error">{error}</p>}
           {info && <p className="auth__info">{info}</p>}
@@ -115,22 +141,37 @@ export function CustomerAuth() {
               ? 'Aguarde…'
               : mode === 'login'
               ? 'Entrar'
+              : mode === 'forgot'
+              ? 'Enviar link'
               : 'Criar conta'}
           </button>
         </form>
 
-        <button
-          className="auth__toggle"
-          onClick={() => {
-            setMode(mode === 'login' ? 'signup' : 'login');
-            setError(null);
-            setInfo(null);
-          }}
-        >
-          {mode === 'login'
-            ? 'Não tem conta? Criar agora'
-            : 'Já tem conta? Entrar'}
-        </button>
+        {mode === 'forgot' ? (
+          <button
+            className="auth__toggle"
+            onClick={() => {
+              setMode('login');
+              setError(null);
+              setInfo(null);
+            }}
+          >
+            Voltar para o login
+          </button>
+        ) : (
+          <button
+            className="auth__toggle"
+            onClick={() => {
+              setMode(mode === 'login' ? 'signup' : 'login');
+              setError(null);
+              setInfo(null);
+            }}
+          >
+            {mode === 'login'
+              ? 'Não tem conta? Criar agora'
+              : 'Já tem conta? Entrar'}
+          </button>
+        )}
       </div>
     </main>
   );

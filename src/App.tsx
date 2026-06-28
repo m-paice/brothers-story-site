@@ -8,6 +8,8 @@ import { AccountLayout } from './pages/account/AccountLayout';
 import { AccountData } from './pages/account/AccountData';
 import { AccountAddresses } from './pages/account/AccountAddresses';
 import { AccountOrders } from './pages/account/AccountOrders';
+import { AccountSecurity } from './pages/account/AccountSecurity';
+import { ResetPassword } from './pages/ResetPassword';
 import { Sobre } from './pages/Sobre';
 import { Envios } from './pages/Envios';
 import { Trocas } from './pages/Trocas';
@@ -42,7 +44,9 @@ function App() {
           <Route path="dados" element={<AccountData />} />
           <Route path="enderecos" element={<AccountAddresses />} />
           <Route path="pedidos" element={<AccountOrders />} />
+          <Route path="senha" element={<AccountSecurity />} />
         </Route>
+        <Route path="/redefinir-senha" element={<ResetPassword />} />
       </Route>
       <Route path="/sobre" element={<Sobre />} />
       <Route path="/envios" element={<Envios />} />
