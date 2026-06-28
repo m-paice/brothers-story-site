@@ -22,9 +22,8 @@ function truncate(value: string, max: number): string {
 export default async function handler(request: Request): Promise<Response> {
   const url = new URL(request.url);
 
-  // Extract product id from path: /api/produto/:id
-  const segments = url.pathname.split('/');
-  const id = segments[segments.length - 1];
+  // id comes as query param: /api/produto?id=42
+  const id = url.searchParams.get('id') ?? '';
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
