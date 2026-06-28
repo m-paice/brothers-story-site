@@ -40,23 +40,31 @@ Deno.serve(async (req) => {
     );
 
     // Busca peso/dimensões do produto de cada variação pedida.
-    const variantIds = (items as ReqItem[]).map((i) => i.variant_id);
+    // Filtra ids inválidos (null, 0) para evitar match incorreto no .in()
+    const variantIds = (items as ReqItem[])
+      .map((i) => i.variant_id)
+      .filter((id): id is number => id != null && id > 0);
+
     const { data: variants, error } = await supabase
       .from('product_variants')
       .select('id, product:products(weight, height, width, length)')
       .in('id', variantIds);
     if (error) throw error;
 
-    const products = (items as ReqItem[]).map((item) => {
+    // A SuperFrete não suporta o campo `quantity` — cada objeto no array
+    // representa exatamente 1 unidade. Expandimos com flatMap para que
+    // qty: 3 vire 3 entradas separadas e o peso/volume total seja correto.
+    const products = (items as ReqItem[]).flatMap((item) => {
       const v = (variants ?? []).find((x) => x.id === item.variant_id);
       const p = (Array.isArray(v?.product) ? v?.product[0] : v?.product) ?? {};
-      return {
-        quantity: Math.max(1, Number(item.qty) || 1),
+      const unit = {
         weight: Number(p.weight ?? 0.3),
         height: Number(p.height ?? 2),
         width: Number(p.width ?? 11),
         length: Number(p.length ?? 16),
       };
+      const qty = Math.max(1, Number(item.qty) || 1);
+      return Array.from({ length: qty }, () => unit);
     });
 
     const baseUrl =

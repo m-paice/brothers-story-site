@@ -60,7 +60,10 @@ export function Checkout({
   // Compra exige login (quando há Supabase). Offline segue como guest.
   const needsLogin = isSupabaseConfigured && !session;
 
-  const applyAddress = (a: Address) =>
+  const applyAddress = (a: Address) => {
+    // Limpa cotação anterior: o CEP mudou, o frete precisa ser recalculado.
+    setShippingOptions([]);
+    setShippingId(null);
     setForm((f) => ({
       ...f,
       cep: a.cep,
@@ -71,6 +74,7 @@ export function Checkout({
       cidade: a.cidade,
       uf: a.uf,
     }));
+  };
 
   // Ao abrir logado: pré-preenche contato (perfil) e endereço padrão (salvos).
   useEffect(() => {
