@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seu link de acesso — Brothers Story</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0a0a0b;font-family:'Inter','Segoe UI',Roboto,sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0b;padding:48px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+          <!-- Logo / marca -->
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <span style="font-size:22px;font-weight:700;letter-spacing:0.08em;color:#f5f5f7;text-transform:uppercase;">
+                BROTHERS STORY
+              </span>
+            </td>
+          </tr>
+
+          <!-- Card principal -->
+          <tr>
+            <td style="background-color:#141417;border:1px solid #232327;border-radius:14px;padding:40px 36px;">
+
+              <!-- Ícone -->
+              <p style="margin:0 0 24px;text-align:center;font-size:36px;">✨</p>
+
+              <!-- Título -->
+              <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#f5f5f7;text-align:center;">
+                Seu link de acesso
+              </h1>
+
+              <!-- Texto -->
+              <p style="margin:0 0 8px;font-size:15px;color:#8a8a93;text-align:center;line-height:1.6;">
+                Você solicitou um link para entrar na sua conta na Brothers Story.
+              </p>
+              <p style="margin:0 0 32px;font-size:15px;color:#8a8a93;text-align:center;line-height:1.6;">
+                Clique no botão abaixo para acessar. O link expira em <strong style="color:#f5f5f7;">1 hora</strong>.
+              </p>
+
+              <!-- Botão CTA -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display:inline-block;background-color:#6366f1;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:0.02em;">
+                      Entrar na minha conta
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divisor -->
+              <hr style="border:none;border-top:1px solid #232327;margin:32px 0;" />
+
+              <!-- Link fallback -->
+              <p style="margin:0 0 8px;font-size:13px;color:#8a8a93;text-align:center;">
+                Se o botão não funcionar, copie e cole o link abaixo:
+              </p>
+              <p style="margin:0;font-size:12px;color:#6366f1;text-align:center;word-break:break-all;">
+                {{ .ConfirmationURL }}
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- Rodapé -->
+          <tr>
+            <td style="padding-top:24px;text-align:center;">
+              <p style="margin:0;font-size:13px;color:#8a8a93;">
+                Se você não solicitou isso, ignore este e-mail.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
