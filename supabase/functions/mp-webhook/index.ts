@@ -11,6 +11,7 @@
 // ============================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { loadTenantCredentials, extractStoreId } from '../_shared/tenant.ts';
+import { sendEmail, buildCustomerEmail, buildOwnerEmail } from '../_shared/email.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -102,6 +103,11 @@ Deno.serve(async (req) => {
       .eq('id', orderId);
     if (error) console.error('Falha ao atualizar pedido:', error);
 
+    // Envia e-mails de notificação quando o pagamento é aprovado.
+    if (status === 'approved' && !error) {
+      await sendOrderEmails(supabase, orderId, storeId);
+    }
+
     return new Response('ok', { status: 200 });
   } catch (err) {
     console.error('mp-webhook:', err);
@@ -109,6 +115,108 @@ Deno.serve(async (req) => {
     return new Response('error', { status: 200 });
   }
 });
+
+// Busca o pedido e dispara os dois e-mails (cliente + dono da loja).
+async function sendOrderEmails(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  orderId: string,
+  storeId: string | null
+): Promise<void> {
+  try {
+    // Busca o pedido
+    const { data: order, error: orderErr } = await supabase
+      .from('orders')
+      .select('order_number, customer, shipping, items, subtotal, shipping_fee, total, store_id')
+      .eq('id', orderId)
+      .single();
+
+    if (orderErr || !order) {
+      console.error('sendOrderEmails: pedido não encontrado', orderErr);
+      return;
+    }
+
+    const resolvedStoreId = storeId ?? order.store_id;
+
+    // Busca nome da loja e e-mail do dono
+    const [settingsRes, ownerRes] = await Promise.all([
+      supabase
+        .from('store_settings')
+        .select('data')
+        .eq('store_id', resolvedStoreId)
+        .single(),
+      supabase
+        .from('store_members')
+        .select('user_id')
+        .eq('store_id', resolvedStoreId)
+        .eq('role', 'owner')
+        .single(),
+    ]);
+
+    const storeName: string =
+      settingsRes.data?.data?.store?.name ?? 'Loja';
+
+    let ownerEmail: string | null = null;
+    if (ownerRes.data?.user_id) {
+      const { data: authUser } = await supabase.auth.admin.getUserById(
+        ownerRes.data.user_id
+      );
+      ownerEmail = authUser?.user?.email ?? null;
+    }
+
+    // Monta endereço de entrega legível
+    const s = order.shipping ?? {};
+    const shippingAddress = [
+      s.endereco,
+      s.numero && `${s.numero}${s.complemento ? ` / ${s.complemento}` : ''}`,
+      s.bairro,
+      s.cidade && `${s.cidade} — ${s.uf}`,
+      s.cep,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+    const emailData = {
+      orderNumber: order.order_number,
+      customerName: order.customer?.nome ?? 'Cliente',
+      items: order.items ?? [],
+      subtotal: Number(order.subtotal),
+      shippingFee: Number(order.shipping_fee),
+      total: Number(order.total),
+      shippingAddress,
+      storeName,
+    };
+
+    const promises: Promise<void>[] = [];
+
+    // E-mail para o cliente
+    if (order.customer?.email) {
+      promises.push(
+        sendEmail({
+          to: order.customer.email,
+          subject: `Pedido #${order.order_number} confirmado — ${storeName}`,
+          html: buildCustomerEmail(emailData),
+        })
+      );
+    }
+
+    // E-mail para o dono da loja
+    if (ownerEmail) {
+      promises.push(
+        sendEmail({
+          to: ownerEmail,
+          subject: `Novo pedido #${order.order_number} — ${storeName}`,
+          html: buildOwnerEmail(emailData),
+        })
+      );
+    }
+
+    await Promise.all(promises);
+  } catch (err) {
+    // Não deixa falha de e-mail derrubar o webhook
+    console.error('sendOrderEmails error:', err);
+  }
+}
 
 // Verifica a assinatura x-signature do Mercado Pago.
 async function verifySignature(
