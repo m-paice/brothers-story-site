@@ -17,16 +17,16 @@ const TABS: { value: Tab; label: string }[] = [
 
 interface TenantCredentials {
   superfrete_token: string;
-  superfrete_base_url: string;
+  superfrete_sandbox: boolean;
   origin_cep: string;
   mercadopago_access_token: string;
   mercadopago_webhook_secret: string;
-  site_url: string;
   sender_name: string;
   sender_document: string;
   sender_email: string;
   sender_phone: string;
-  sender_address: string;
+  // campos do JSONB sender_address expandidos no form
+  sender_street: string;
   sender_number: string;
   sender_complement: string;
   sender_district: string;
@@ -36,16 +36,15 @@ interface TenantCredentials {
 
 const DEFAULT_CREDS: TenantCredentials = {
   superfrete_token: '',
-  superfrete_base_url: 'https://sandbox.superfrete.com',
+  superfrete_sandbox: true,
   origin_cep: '',
   mercadopago_access_token: '',
   mercadopago_webhook_secret: '',
-  site_url: '',
   sender_name: '',
   sender_document: '',
   sender_email: '',
   sender_phone: '',
-  sender_address: '',
+  sender_street: '',
   sender_number: '',
   sender_complement: '',
   sender_district: '',
@@ -93,23 +92,26 @@ export function SettingsAdmin() {
             .maybeSingle()
             .then(({ data }) => {
               if (data) {
+                const addr =
+                  typeof data.sender_address === 'object' && data.sender_address !== null
+                    ? (data.sender_address as Record<string, string>)
+                    : {};
                 setCreds({
                   superfrete_token: data.superfrete_token ?? '',
-                  superfrete_base_url: data.superfrete_base_url ?? 'https://sandbox.superfrete.com',
+                  superfrete_sandbox: data.superfrete_sandbox ?? true,
                   origin_cep: data.origin_cep ?? '',
                   mercadopago_access_token: data.mercadopago_access_token ?? '',
                   mercadopago_webhook_secret: data.mercadopago_webhook_secret ?? '',
-                  site_url: data.site_url ?? '',
                   sender_name: data.sender_name ?? '',
                   sender_document: data.sender_document ?? '',
                   sender_email: data.sender_email ?? '',
                   sender_phone: data.sender_phone ?? '',
-                  sender_address: data.sender_address ?? '',
-                  sender_number: data.sender_number ?? '',
-                  sender_complement: data.sender_complement ?? '',
-                  sender_district: data.sender_district ?? '',
-                  sender_city: data.sender_city ?? '',
-                  sender_state: data.sender_state ?? '',
+                  sender_street: addr.address ?? '',
+                  sender_number: addr.number ?? '',
+                  sender_complement: addr.complement ?? '',
+                  sender_district: addr.district ?? '',
+                  sender_city: addr.city ?? '',
+                  sender_state: addr.state ?? '',
                 });
               }
             })
@@ -148,7 +150,29 @@ export function SettingsAdmin() {
         if (!supabase || !currentStoreId) throw new Error('Sem conexão.');
         const { error: upsertErr } = await supabase
           .from('tenant_credentials')
-          .upsert({ store_id: currentStoreId, ...creds }, { onConflict: 'store_id' });
+          .upsert(
+            {
+              store_id: currentStoreId,
+              superfrete_token: creds.superfrete_token,
+              superfrete_sandbox: creds.superfrete_sandbox,
+              origin_cep: creds.origin_cep,
+              mercadopago_access_token: creds.mercadopago_access_token,
+              mercadopago_webhook_secret: creds.mercadopago_webhook_secret,
+              sender_name: creds.sender_name,
+              sender_document: creds.sender_document,
+              sender_email: creds.sender_email,
+              sender_phone: creds.sender_phone,
+              sender_address: {
+                address: creds.sender_street,
+                number: creds.sender_number,
+                complement: creds.sender_complement,
+                district: creds.sender_district,
+                city: creds.sender_city,
+                state: creds.sender_state,
+              },
+            },
+            { onConflict: 'store_id' }
+          );
         if (upsertErr) throw upsertErr;
       } else {
         await saveSettings(form, currentStoreId ?? undefined);
@@ -364,13 +388,13 @@ export function SettingsAdmin() {
                 <label>Ambiente</label>
                 <select
                   className="admin-select"
-                  value={creds.superfrete_base_url}
+                  value={creds.superfrete_sandbox ? 'sandbox' : 'producao'}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                    setCred({ superfrete_base_url: e.target.value })
+                    setCred({ superfrete_sandbox: e.target.value === 'sandbox' })
                   }
                 >
-                  <option value="https://sandbox.superfrete.com">Sandbox (testes)</option>
-                  <option value="https://www.superfrete.com">Produção</option>
+                  <option value="sandbox">Sandbox (testes)</option>
+                  <option value="producao">Produção</option>
                 </select>
               </div>
             </div>
@@ -390,11 +414,6 @@ export function SettingsAdmin() {
                 value={creds.mercadopago_webhook_secret}
                 onChange={(v) => setCred({ mercadopago_webhook_secret: v })}
               />
-              <Field
-                label="URL do site (ex: https://minhaloja.com)"
-                value={creds.site_url}
-                onChange={(v) => setCred({ site_url: v })}
-              />
             </div>
           </section>
 
@@ -408,7 +427,7 @@ export function SettingsAdmin() {
               <Field label="Telefone" value={creds.sender_phone} onChange={(v) => setCred({ sender_phone: v })} />
             </div>
             <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
-              <Field label="Endereço" value={creds.sender_address} onChange={(v) => setCred({ sender_address: v })} />
+              <Field label="Logradouro" value={creds.sender_street} onChange={(v) => setCred({ sender_street: v })} />
               <Field label="Número" value={creds.sender_number} onChange={(v) => setCred({ sender_number: v })} />
               <Field label="Complemento" value={creds.sender_complement} onChange={(v) => setCred({ sender_complement: v })} />
               <Field label="Bairro" value={creds.sender_district} onChange={(v) => setCred({ sender_district: v })} />
