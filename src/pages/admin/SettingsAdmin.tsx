@@ -398,6 +398,21 @@ export function SettingsAdmin() {
                 </select>
               </div>
             </div>
+            <p className="settings__hint" style={{ marginTop: 'var(--space-6)' }}>Dados do remetente usados nas etiquetas.</p>
+            <div className="settings-grid">
+              <Field label="Nome completo" value={creds.sender_name} onChange={(v) => setCred({ sender_name: v })} />
+              <Field label="CPF ou CNPJ" value={creds.sender_document} onChange={(v) => setCred({ sender_document: v })} />
+              <Field label="E-mail" value={creds.sender_email} onChange={(v) => setCred({ sender_email: v })} />
+              <Field label="Telefone" value={creds.sender_phone} onChange={(v) => setCred({ sender_phone: v })} />
+            </div>
+            <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
+              <Field label="Logradouro" value={creds.sender_street} onChange={(v) => setCred({ sender_street: v })} />
+              <Field label="Número" value={creds.sender_number} onChange={(v) => setCred({ sender_number: v })} />
+              <Field label="Complemento" value={creds.sender_complement} onChange={(v) => setCred({ sender_complement: v })} />
+              <Field label="Bairro" value={creds.sender_district} onChange={(v) => setCred({ sender_district: v })} />
+              <Field label="Cidade" value={creds.sender_city} onChange={(v) => setCred({ sender_city: v })} />
+              <Field label="Estado (UF)" value={creds.sender_state} onChange={(v) => setCred({ sender_state: v.toUpperCase().slice(0, 2) })} />
+            </div>
           </section>
 
           <section className="settings__section">
@@ -417,24 +432,6 @@ export function SettingsAdmin() {
             </div>
           </section>
 
-          <section className="settings__section">
-            <h2 className="settings__section-title">Dados do remetente</h2>
-            <p className="settings__hint">Usados nas etiquetas de frete geradas via SuperFrete.</p>
-            <div className="settings-grid">
-              <Field label="Nome completo" value={creds.sender_name} onChange={(v) => setCred({ sender_name: v })} />
-              <Field label="CPF ou CNPJ" value={creds.sender_document} onChange={(v) => setCred({ sender_document: v })} />
-              <Field label="E-mail" value={creds.sender_email} onChange={(v) => setCred({ sender_email: v })} />
-              <Field label="Telefone" value={creds.sender_phone} onChange={(v) => setCred({ sender_phone: v })} />
-            </div>
-            <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
-              <Field label="Logradouro" value={creds.sender_street} onChange={(v) => setCred({ sender_street: v })} />
-              <Field label="Número" value={creds.sender_number} onChange={(v) => setCred({ sender_number: v })} />
-              <Field label="Complemento" value={creds.sender_complement} onChange={(v) => setCred({ sender_complement: v })} />
-              <Field label="Bairro" value={creds.sender_district} onChange={(v) => setCred({ sender_district: v })} />
-              <Field label="Cidade" value={creds.sender_city} onChange={(v) => setCred({ sender_city: v })} />
-              <Field label="Estado (UF)" value={creds.sender_state} onChange={(v) => setCred({ sender_state: v.toUpperCase().slice(0, 2) })} />
-            </div>
-          </section>
         </>
       )}
 
