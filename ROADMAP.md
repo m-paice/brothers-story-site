@@ -54,6 +54,10 @@
 - [x] `seed.sql` — dados essenciais (planos, loja Brothers Story, usuários, produtos)
 - [x] Migrations com nomenclatura por data (`YYYYMMDD_descricao.sql`)
 - [x] Deploy automático do frontend via Vercel (`main`)
+- [x] Notificações de pedido por e-mail via Brevo (confirmação ao cliente + alerta ao dono da loja)
+- [x] `VITE_DEFAULT_STORE_ID` para modo single-store sem subdomínio
+- [x] CORS corrigido nas Edge Functions (`x-tenant-id` no `Access-Control-Allow-Headers`)
+- [x] `TenantContext` ignora domínios de plataforma (Vercel, Netlify) como subdomínio de loja
 
 ---
 
@@ -62,8 +66,8 @@
 ### Prioridade alta
 
 - [ ] **Testar fluxo `/criar-loja` ponta a ponta** — cadastro → login automático → wizard `/admin/setup` → painel admin funcionando
-- [ ] **Notificação de novo pedido para o dono da loja** — e-mail ou WhatsApp quando um cliente finaliza um pedido
-- [ ] **Confirmação de pedido para o cliente** — e-mail com resumo do pedido após checkout
+- [x] **Notificação de novo pedido para o dono da loja** — e-mail via Brevo quando pagamento é aprovado
+- [x] **Confirmação de pedido para o cliente** — e-mail com resumo do pedido após pagamento aprovado
 
 ### Prioridade média
 
