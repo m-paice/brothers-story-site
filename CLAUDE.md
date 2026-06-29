@@ -173,8 +173,7 @@ npx supabase functions delete nome-da-funcao
 
 ```bash
 # Executar SQL arbitrário contra o banco remoto (arquivo)
-npx supabase db query --linked --file supabase/storage.sql
-npx supabase db query --linked --file supabase/settings.sql
+npx supabase db query --linked --file supabase/migrations/20260629_minha_migration.sql
 
 # Executar SQL inline
 npx supabase db query --linked "SELECT count(*) FROM products;"
