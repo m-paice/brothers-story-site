@@ -7,10 +7,14 @@ import { useCart } from '../context/CartContext';
 import type { StoreOutletContext } from '../components/StoreLayout';
 import {
   ALL_CATEGORIES,
+  DEFAULT_FILTERS,
+  type FilterState,
   type Product,
   type SortOption,
   type ViewMode,
 } from '../types/product';
+
+const SIZE_ORDER = ['PP', 'P', 'p', 'M', 'm', 'G', 'GG', 'XG', 'Único'];
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -19,6 +23,18 @@ function loadFromStorage<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function countActiveFilters(f: FilterState): number {
+  return (
+    (f.onlySale ? 1 : 0) +
+    (f.onlyNew ? 1 : 0) +
+    (f.onlyInStock ? 1 : 0) +
+    (f.priceMin ? 1 : 0) +
+    (f.priceMax ? 1 : 0) +
+    f.colors.length +
+    f.sizes.length
+  );
 }
 
 export function Storefront() {
@@ -32,6 +48,8 @@ export function Storefront() {
   const [view, setView] = useState<ViewMode>(() =>
     loadFromStorage<ViewMode>('ef:view', 'list')
   );
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     fetchProducts()
@@ -49,19 +67,60 @@ export function Storefront() {
     return [ALL_CATEGORIES, ...unique];
   }, [products]);
 
+  const availableColors = useMemo(() => {
+    const colors = new Set<string>();
+    products.forEach((p) =>
+      p.variants.forEach((v) => {
+        if (v.color) colors.add(v.color);
+      })
+    );
+    return Array.from(colors).sort();
+  }, [products]);
+
+  const availableSizes = useMemo(() => {
+    const sizes = new Set<string>();
+    products.forEach((p) => p.variants.forEach((v) => sizes.add(v.size)));
+    return Array.from(sizes).sort((a, b) => {
+      const ia = SIZE_ORDER.indexOf(a);
+      const ib = SIZE_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return a.localeCompare(b);
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }, [products]);
+
+  const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
+
   const visibleProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const priceMin = filters.priceMin ? parseFloat(filters.priceMin) : null;
+    const priceMax = filters.priceMax ? parseFloat(filters.priceMax) : null;
 
     const result = products.filter((product) => {
-      const matchesCategory =
-        activeCategory === ALL_CATEGORIES ||
-        product.category === activeCategory;
-      const matchesSearch =
-        term === '' ||
-        product.name.toLowerCase().includes(term) ||
-        product.description.toLowerCase().includes(term) ||
-        product.category.toLowerCase().includes(term);
-      return matchesCategory && matchesSearch;
+      if (activeCategory !== ALL_CATEGORIES && product.category !== activeCategory)
+        return false;
+      if (
+        term &&
+        !product.name.toLowerCase().includes(term) &&
+        !product.description.toLowerCase().includes(term) &&
+        !product.category.toLowerCase().includes(term)
+      )
+        return false;
+      if (filters.onlySale && product.discount === 0) return false;
+      if (filters.onlyNew && !product.isNew) return false;
+      if (filters.onlyInStock && product.stock === 0) return false;
+      if (priceMin !== null && product.price < priceMin) return false;
+      if (priceMax !== null && product.price > priceMax) return false;
+      if (filters.colors.length > 0) {
+        const productColors = product.variants.map((v) => v.color).filter(Boolean);
+        if (!filters.colors.some((c) => productColors.includes(c))) return false;
+      }
+      if (filters.sizes.length > 0) {
+        const productSizes = product.variants.map((v) => v.size);
+        if (!filters.sizes.some((s) => productSizes.includes(s))) return false;
+      }
+      return true;
     });
 
     return [...result].sort((a, b) => {
@@ -76,7 +135,7 @@ export function Storefront() {
           return 0;
       }
     });
-  }, [products, search, activeCategory, sort]);
+  }, [products, search, activeCategory, sort, filters]);
 
   return (
     <>
@@ -89,6 +148,13 @@ export function Storefront() {
         count={visibleProducts.length}
         view={view}
         onViewChange={setView}
+        filters={filters}
+        onFiltersChange={setFilters}
+        filterOpen={filterOpen}
+        onFilterToggle={() => setFilterOpen((o) => !o)}
+        activeFilterCount={activeFilterCount}
+        availableColors={availableColors}
+        availableSizes={availableSizes}
       />
 
       <main className="content container">

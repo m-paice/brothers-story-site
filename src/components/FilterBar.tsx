@@ -1,4 +1,5 @@
-import type { SortOption, ViewMode } from '../types/product';
+import type { FilterState, SortOption, ViewMode } from '../types/product';
+import { FilterPanel } from './FilterPanel';
 
 interface FilterBarProps {
   categories: string[];
@@ -9,6 +10,13 @@ interface FilterBarProps {
   count: number;
   view: ViewMode;
   onViewChange: (view: ViewMode) => void;
+  filters: FilterState;
+  onFiltersChange: (filters: FilterState) => void;
+  filterOpen: boolean;
+  onFilterToggle: () => void;
+  activeFilterCount: number;
+  availableColors: string[];
+  availableSizes: string[];
 }
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
@@ -18,10 +26,6 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'relevance', label: 'Relevância' },
 ];
 
-/**
- * Barra de filtros horizontal: abas de categoria (esquerda) e ordenação (direita).
- * Os tabs rolam horizontalmente no mobile.
- */
 export function FilterBar({
   categories,
   activeCategory,
@@ -31,6 +35,13 @@ export function FilterBar({
   count,
   view,
   onViewChange,
+  filters,
+  onFiltersChange,
+  filterOpen,
+  onFilterToggle,
+  activeFilterCount,
+  availableColors,
+  availableSizes,
 }: FilterBarProps) {
   return (
     <div className="toolbar">
@@ -52,35 +63,64 @@ export function FilterBar({
           ))}
         </div>
 
-        {/* Ordenação */}
-        <label className="sort">
-          <span className="sort__label">Ordenar:</span>
-          <select
-            className="sort__select"
-            value={sort}
-            onChange={(e) => onSortChange(e.target.value as SortOption)}
-            aria-label="Ordenar produtos"
+        <div className="toolbar__controls">
+          {/* Botão de filtros */}
+          <button
+            className={`filter-toggle ${activeFilterCount > 0 || filterOpen ? 'filter-toggle--active' : ''}`}
+            onClick={onFilterToggle}
+            aria-expanded={filterOpen}
+            aria-label="Filtros"
           >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+              <line x1="11" y1="18" x2="13" y2="18" />
+            </svg>
+            Filtros
+            {activeFilterCount > 0 && (
+              <span className="filter-toggle__badge">{activeFilterCount}</span>
+            )}
+          </button>
+
+          {/* Ordenação */}
+          <label className="sort">
+            <span className="sort__label">Ordenar:</span>
+            <select
+              className="sort__select"
+              value={sort}
+              onChange={(e) => onSortChange(e.target.value as SortOption)}
+              aria-label="Ordenar produtos"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
+
+      {/* Painel de filtros */}
+      {filterOpen && (
+        <FilterPanel
+          filters={filters}
+          onChange={onFiltersChange}
+          availableColors={availableColors}
+          availableSizes={availableSizes}
+          activeCount={activeFilterCount}
+        />
+      )}
 
       <div className="toolbar__meta">
         <p className="toolbar__count">
           {count} {count === 1 ? 'Produto' : 'Produtos'}
         </p>
 
-        {/* Alternância de visualização (só no mobile) */}
+        {/* Alternância de visualização — só no mobile */}
         <div className="view-toggle" role="group" aria-label="Visualização">
           <button
-            className={`view-toggle__btn ${
-              view === 'list' ? 'view-toggle__btn--active' : ''
-            }`}
+            className={`view-toggle__btn ${view === 'list' ? 'view-toggle__btn--active' : ''}`}
             onClick={() => onViewChange('list')}
             aria-label="Ver em lista"
             aria-pressed={view === 'list'}
@@ -92,9 +132,7 @@ export function FilterBar({
             </svg>
           </button>
           <button
-            className={`view-toggle__btn ${
-              view === 'grid' ? 'view-toggle__btn--active' : ''
-            }`}
+            className={`view-toggle__btn ${view === 'grid' ? 'view-toggle__btn--active' : ''}`}
             onClick={() => onViewChange('grid')}
             aria-label="Ver em grade"
             aria-pressed={view === 'grid'}

@@ -40,3 +40,23 @@ export type Cart = Record<number, number>;
 
 // Categoria especial que representa "todas"
 export const ALL_CATEGORIES = 'Todos';
+
+export interface FilterState {
+  onlySale: boolean;
+  onlyNew: boolean;
+  onlyInStock: boolean;
+  priceMin: string;
+  priceMax: string;
+  colors: string[];
+  sizes: string[];
+}
+
+export const DEFAULT_FILTERS: FilterState = {
+  onlySale: false,
+  onlyNew: false,
+  onlyInStock: false,
+  priceMin: '',
+  priceMax: '',
+  colors: [],
+  sizes: [],
+};

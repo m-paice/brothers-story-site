@@ -13,6 +13,7 @@
 - [x] Autenticação de cliente (login / cadastro)
 - [x] Área do cliente: pedidos, endereços, dados pessoais, senha
 - [x] Páginas institucionais: Sobre, Envios, Trocas e Devoluções, Contato
+- [x] Filtros personalizados: status (novidade, promoção, em estoque), faixa de preço, cor e tamanho
 - [x] Tema dark responsivo
 
 ### Painel Admin (dono da loja)

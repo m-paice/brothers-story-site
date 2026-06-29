@@ -326,6 +326,13 @@
   outline: none;
 }
 
+.toolbar__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
 .toolbar__meta {
   margin-top: var(--space-3);
   display: flex;
@@ -338,6 +345,139 @@
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--color-text-secondary);
+}
+
+/* ============================================================
+   Filter toggle button
+   ============================================================ */
+.filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color var(--transition), color var(--transition),
+    background var(--transition);
+}
+.filter-toggle:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text);
+}
+.filter-toggle--active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+.filter-toggle__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+/* ============================================================
+   Filter panel
+   ============================================================ */
+.filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-3);
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.filter-section__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-secondary);
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.filter-chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  transition: border-color var(--transition), color var(--transition),
+    background var(--transition);
+}
+.filter-chip:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text);
+}
+.filter-chip--active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.filter-price {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.filter-price__input {
+  width: 88px;
+  height: 32px;
+  padding: 0 var(--space-3);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-family: inherit;
+  transition: border-color var(--transition);
+}
+.filter-price__input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+.filter-price__input::placeholder {
+  color: var(--color-text-secondary);
+}
+.filter-price__sep {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.filter-clear {
+  margin-left: auto;
+  align-self: flex-end;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  text-decoration: underline;
+  transition: color var(--transition);
+}
+.filter-clear:hover {
+  color: var(--color-danger);
 }
 
 /* Alternância lista/grade — só aparece no mobile */
@@ -2032,11 +2172,15 @@
     padding-left: 0;
     padding-right: 0;
   }
-  /* Chips de categoria em linha própria (cheia) + ordenação abaixo */
+  /* Chips de categoria em linha própria (cheia) + controles abaixo */
   .toolbar__row {
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-3);
+  }
+  .toolbar__controls {
+    padding: 0 var(--space-5);
+    justify-content: space-between;
   }
   /* Linha de chips: rola na horizontal, com respiro nas laterais e fade */
   .tabs {
@@ -2060,16 +2204,25 @@
   .tabs__item {
     padding: var(--space-2) var(--space-4);
   }
-  /* Ordenação alinhada com o respiro lateral */
+  /* Ordenação: deixar o select expandir no mobile */
   .sort {
+    flex: 1;
     justify-content: space-between;
-    padding: 0 var(--space-5);
   }
   .sort__select {
     flex: 1;
   }
   .toolbar__meta {
     padding: 0 var(--space-5);
+  }
+  .filter-panel {
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-left: var(--space-5);
+    padding-right: var(--space-5);
+  }
+  .filter-clear {
+    margin-left: 0;
   }
 
   .footer__inner {
