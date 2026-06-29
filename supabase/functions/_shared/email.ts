@@ -1,8 +1,8 @@
-// Helpers para envio de e-mail via Resend.
-// Secret obrigatório: RESEND_API_KEY
-// Secret opcional:   RESEND_FROM_EMAIL (padrão: onboarding@resend.dev)
+// Helpers para envio de e-mail via Brevo (ex-Sendinblue).
+// Secret obrigatório: BREVO_API_KEY
+// Secrets opcionais:  BREVO_FROM_EMAIL, BREVO_FROM_NAME
 
-const RESEND_URL = 'https://api.resend.com/emails';
+const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
 
 interface SendParams {
   to: string;
@@ -11,26 +11,32 @@ interface SendParams {
 }
 
 export async function sendEmail(params: SendParams): Promise<void> {
-  const apiKey = Deno.env.get('RESEND_API_KEY');
+  const apiKey = Deno.env.get('BREVO_API_KEY');
   if (!apiKey) {
-    console.warn('RESEND_API_KEY não configurado — e-mail ignorado');
+    console.warn('BREVO_API_KEY não configurado — e-mail ignorado');
     return;
   }
-  const from =
-    Deno.env.get('RESEND_FROM_EMAIL') ?? 'onboarding@resend.dev';
 
-  const res = await fetch(RESEND_URL, {
+  const fromEmail = Deno.env.get('BREVO_FROM_EMAIL') ?? 'b05f53001@smtp-brevo.com';
+  const fromName  = Deno.env.get('BREVO_FROM_NAME')  ?? 'Loja';
+
+  const res = await fetch(BREVO_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      'api-key': apiKey,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ from, to: params.to, subject: params.subject, html: params.html }),
+    body: JSON.stringify({
+      sender:      { name: fromName, email: fromEmail },
+      to:          [{ email: params.to }],
+      subject:     params.subject,
+      htmlContent: params.html,
+    }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => res.statusText);
-    console.error('Resend error:', err);
+    console.error('Brevo error:', err);
   }
 }
 
