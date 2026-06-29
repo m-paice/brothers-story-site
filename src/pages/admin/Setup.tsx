@@ -62,7 +62,7 @@ export function Setup() {
     try {
       const { error: upsertError } = await supabase
         .from('tenant_credentials')
-        .upsert({ store_id: currentStoreId, ...fields });
+        .upsert({ store_id: currentStoreId, ...fields }, { onConflict: 'store_id' });
       if (upsertError) throw upsertError;
       next();
     } catch {
