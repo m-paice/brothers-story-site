@@ -245,6 +245,11 @@ npx supabase migration list
 npx supabase migration repair --status applied <versao>
 ```
 
+#### Convenção de nomenclatura
+
+- **`supabase/schema.sql`** — dump completo do esquema atual (fonte da verdade para recriar do zero). Atualizar com `npx supabase db dump --linked -f supabase/schema.sql` após mudanças estruturais.
+- **`supabase/migrations/YYYYMMDD_descricao.sql`** — novas migrations incrementais. Exemplo: `20260629_add_store_domain.sql`. Executar manualmente com `npx supabase db query --linked --file supabase/migrations/arquivo.sql`.
+
 ### Projetos e Organização
 
 ```bash
