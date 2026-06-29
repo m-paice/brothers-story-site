@@ -247,7 +247,26 @@ npx supabase migration repair --status applied <versao>
 #### Convenção de nomenclatura
 
 - **`supabase/schema.sql`** — dump completo do esquema atual (fonte da verdade para recriar do zero). Atualizar com `npx supabase db dump --linked -f supabase/schema.sql` após mudanças estruturais.
+- **`supabase/seed.sql`** — dados essenciais para popular o banco após reset: planos, loja Brothers Story, usuários (Eduardo + Matheus), produtos e variações.
 - **`supabase/migrations/YYYYMMDD_descricao.sql`** — novas migrations incrementais. Exemplo: `20260629_add_store_domain.sql`. Executar manualmente com `npx supabase db query --linked --file supabase/migrations/arquivo.sql`.
+
+#### Reset completo do banco
+
+```bash
+# 1. Recriar toda a estrutura
+npx supabase db query --linked --file supabase/schema.sql
+
+# 2. Aplicar migrations em ordem cronológica
+npx supabase db query --linked --file supabase/migrations/20260601_saas_create_tables.sql
+npx supabase db query --linked --file supabase/migrations/20260602_saas_rls.sql
+# ... demais migrations em ordem de data
+
+# 3. Popular com dados essenciais (usuários, loja, produtos)
+npx supabase db query --linked --file supabase/seed.sql
+```
+
+> **Senha padrão dos usuários de seed**: `password`
+> Matheus (`matheus.paice@gmail.com`) = superadmin | Eduardo (`eduardo.lopes@brotherstore.com`) = admin/dono da Brothers Story
 
 ### Projetos e Organização
 
