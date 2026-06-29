@@ -7,6 +7,7 @@ import {
   type ProductInput,
 } from '../../lib/products';
 import { ProductFormModal } from '../../components/admin/ProductFormModal';
+import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
 import { resolveImageUrl } from '../../utils/image';
 import { isSupabaseConfigured } from '../../lib/supabase';
@@ -27,6 +28,7 @@ const stockClass = (stock: number) =>
   stock === 0 ? 'is-out' : stock <= 5 ? 'is-low' : 'is-in';
 
 export function ProductsAdmin() {
+  const { currentStoreId } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -40,7 +42,7 @@ export function ProductsAdmin() {
 
   const load = () => {
     setLoading(true);
-    fetchProducts()
+    fetchProducts(currentStoreId ?? undefined)
       .then(setProducts)
       .catch((err) => console.error('Falha ao carregar produtos:', err))
       .finally(() => setLoading(false));
@@ -49,11 +51,11 @@ export function ProductsAdmin() {
   // Carga inicial: não seta `loading` aqui (já inicia true) para evitar
   // setState síncrono dentro do effect.
   useEffect(() => {
-    fetchProducts()
+    fetchProducts(currentStoreId ?? undefined)
       .then(setProducts)
       .catch((err) => console.error('Falha ao carregar produtos:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentStoreId]);
 
   // Categorias disponíveis (derivadas do catálogo)
   const categories = useMemo(() => {
@@ -104,7 +106,7 @@ export function ProductsAdmin() {
 
   const handleSave = async (input: ProductInput) => {
     if (editing) await updateProduct(editing.id, input);
-    else await createProduct(input);
+    else await createProduct(input, currentStoreId ?? undefined);
     load();
   };
 

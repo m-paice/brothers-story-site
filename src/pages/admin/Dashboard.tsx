@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchOrders } from '../../lib/orders';
 import { fetchProducts } from '../../lib/products';
 import { fetchSales } from '../../lib/sales';
+import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
 import {
   ORDER_STATUS_META,
@@ -67,6 +68,7 @@ function periodStart(period: Period, now: number): number | null {
 }
 
 export function Dashboard() {
+  const { currentStoreId } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -94,17 +96,18 @@ export function Dashboard() {
 
   // Carregados de forma independente: uma falha em um não derruba os demais.
   useEffect(() => {
-    fetchOrders()
+    const sid = currentStoreId ?? undefined;
+    fetchOrders(sid)
       .then(setOrders)
       .catch((err) => console.error('Falha ao carregar pedidos:', err))
       .finally(() => setLoading(false));
-    fetchProducts()
+    fetchProducts(sid)
       .then(setProducts)
       .catch((err) => console.error('Falha ao carregar produtos:', err));
-    fetchSales()
+    fetchSales(sid)
       .then(setSales)
       .catch((err) => console.error('Falha ao carregar vendas:', err));
-  }, []);
+  }, [currentStoreId]);
 
   const orderStats = useMemo(() => {
     const novos = periodOrders.filter((o) => o.status === 'novo').length;

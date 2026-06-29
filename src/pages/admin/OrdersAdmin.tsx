@@ -5,6 +5,7 @@ import {
   updateOrderTracking,
   generateLabel,
 } from '../../lib/orders';
+import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
 import {
   ORDER_STATUS_META,
@@ -34,6 +35,7 @@ const formatDate = (iso: string) =>
   });
 
 export function OrdersAdmin() {
+  const { currentStoreId } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<OrderStatus | 'todos'>('todos');
@@ -78,7 +80,7 @@ export function OrdersAdmin() {
 
   const load = () => {
     setLoading(true);
-    fetchOrders()
+    fetchOrders(currentStoreId ?? undefined)
       .then(setOrders)
       .catch((err) => console.error('Falha ao carregar pedidos:', err))
       .finally(() => setLoading(false));
@@ -86,11 +88,11 @@ export function OrdersAdmin() {
 
   // Carga inicial sem setState síncrono no effect (loading já inicia true).
   useEffect(() => {
-    fetchOrders()
+    fetchOrders(currentStoreId ?? undefined)
       .then(setOrders)
       .catch((err) => console.error('Falha ao carregar pedidos:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentStoreId]);
 
   const visible = useMemo(
     () =>

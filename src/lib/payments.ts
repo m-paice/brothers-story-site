@@ -7,6 +7,7 @@ interface StartPaymentInput {
   customer: OrderCustomer;
   shipping: OrderShipping;
   shipping_option_id: number;
+  storeId?: string;
 }
 
 /**
@@ -18,6 +19,7 @@ export async function startPayment({
   customer,
   shipping,
   shipping_option_id,
+  storeId,
 }: StartPaymentInput): Promise<{ init_point: string; order_number: string }> {
   if (!supabase) throw new Error('Pagamento indisponível: Supabase não configurado.');
 
@@ -28,6 +30,7 @@ export async function startPayment({
       shipping,
       shipping_option_id,
     },
+    headers: storeId ? { 'X-Tenant-ID': storeId } : undefined,
   });
 
   if (error) throw error;

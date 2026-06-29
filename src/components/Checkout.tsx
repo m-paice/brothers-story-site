@@ -7,6 +7,7 @@ import { createOrder } from '../lib/orders';
 import { startPayment } from '../lib/payments';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useTenant } from '../context/TenantContext';
 import { fetchProfile, fetchAddresses } from '../lib/account';
 import { quoteShipping, type ShippingOption } from '../lib/shipping';
 import { fetchCep } from '../lib/cep';
@@ -45,6 +46,7 @@ export function Checkout({
   onConfirm,
 }: CheckoutProps) {
   const { session } = useAuth();
+  const { storeId } = useTenant();
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -117,7 +119,7 @@ export function Checkout({
     setShippingOptions([]);
     setShippingId(null);
     try {
-      const options = await quoteShipping(cep, entries);
+      const options = await quoteShipping(cep, entries, storeId ?? undefined);
       if (options.length === 0) {
         setQuoteError('Nenhuma opção de frete para este CEP.');
       }
@@ -191,6 +193,7 @@ export function Checkout({
           customer,
           shipping: shippingData,
           shipping_option_id: shippingId!,
+          storeId: storeId ?? undefined,
         });
         // Guarda o nº do pedido para exibir no retorno (sobrevive ao redirect).
         sessionStorage.setItem('ef:lastOrder', order_number);

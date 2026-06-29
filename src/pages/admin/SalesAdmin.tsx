@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createSale, fetchSales, markSalePaid, deleteSale } from '../../lib/sales';
 import { fetchProducts } from '../../lib/products';
 import { SaleFormModal } from '../../components/admin/SaleFormModal';
+import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
 import { isSupabaseConfigured } from '../../lib/supabase';
 import {
@@ -36,6 +37,7 @@ const formatDay = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString('pt-BR');
 
 export function SalesAdmin() {
+  const { currentStoreId } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,20 +49,20 @@ export function SalesAdmin() {
   useEffect(() => {
     // Carregados de forma independente: uma falha no fetch de vendas não pode
     // impedir o carregamento dos produtos (usados na busca do PDV).
-    fetchSales()
+    fetchSales(currentStoreId ?? undefined)
       .then(setSales)
       .catch((err) => console.error('Falha ao carregar vendas:', err))
       .finally(() => setLoading(false));
-    fetchProducts()
+    fetchProducts(currentStoreId ?? undefined)
       .then(setProducts)
       .catch((err) => console.error('Falha ao carregar produtos:', err));
-  }, []);
+  }, [currentStoreId]);
 
   const reload = () => {
-    fetchSales()
+    fetchSales(currentStoreId ?? undefined)
       .then(setSales)
       .catch((err) => console.error('Falha ao recarregar vendas:', err));
-    fetchProducts()
+    fetchProducts(currentStoreId ?? undefined)
       .then(setProducts)
       .catch((err) => console.error('Falha ao recarregar produtos:', err));
   };

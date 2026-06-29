@@ -16,6 +16,7 @@ export interface StoreSettings {
     tagline: string;
     instagram_url: string;
     whatsapp_url: string;
+    onboarding_done?: boolean;
   };
   hours: {
     seg: DayHours;

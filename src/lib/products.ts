@@ -113,33 +113,47 @@ function offlineProducts(): Product[] {
   return seedProducts;
 }
 
-export async function fetchProducts(): Promise<Product[]> {
+export async function fetchProducts(storeId?: string): Promise<Product[]> {
   if (!supabase) return offlineProducts();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('products')
     .select('*, product_variants(*)')
     .order('id', { ascending: true });
+
+  if (storeId) query = query.eq('store_id', storeId);
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data as ProductRow[]).map(rowToProduct);
 }
 
-export async function fetchProduct(id: number): Promise<Product | null> {
+export async function fetchProduct(
+  id: number,
+  storeId?: string
+): Promise<Product | null> {
   if (!supabase) return offlineProducts().find((p) => p.id === id) ?? null;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('products')
     .select('*, product_variants(*)')
-    .eq('id', id)
-    .single();
+    .eq('id', id);
+
+  if (storeId) query = query.eq('store_id', storeId);
+
+  const { data, error } = await query.single();
 
   if (error) return null;
   return rowToProduct(data as ProductRow);
 }
 
 // Substitui o conjunto de variações de um produto (apaga e reinsere).
-async function syncVariants(productId: number, variants: VariantInput[]) {
+async function syncVariants(
+  productId: number,
+  variants: VariantInput[],
+  storeId?: string
+) {
   if (!supabase) return;
   await supabase.from('product_variants').delete().eq('product_id', productId);
   const rows = cleanVariants(variants).map((v) => ({
@@ -147,6 +161,7 @@ async function syncVariants(productId: number, variants: VariantInput[]) {
     color: v.color,
     size: v.size,
     stock: v.stock,
+    ...(storeId ? { store_id: storeId } : {}),
   }));
   if (rows.length > 0) {
     const { error } = await supabase.from('product_variants').insert(rows);
@@ -154,17 +169,20 @@ async function syncVariants(productId: number, variants: VariantInput[]) {
   }
 }
 
-export async function createProduct(input: ProductInput): Promise<Product> {
+export async function createProduct(
+  input: ProductInput,
+  storeId?: string
+): Promise<Product> {
   if (!supabase) throw new Error('Supabase não configurado.');
   const { data, error } = await supabase
     .from('products')
-    .insert(productToRow(input))
+    .insert({ ...productToRow(input), ...(storeId ? { store_id: storeId } : undefined) })
     .select('id')
     .single();
   if (error) throw error;
 
   const id = (data as { id: number }).id;
-  await syncVariants(id, input.variants);
+  await syncVariants(id, input.variants, storeId);
   return (await fetchProduct(id))!;
 }
 

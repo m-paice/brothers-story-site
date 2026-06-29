@@ -1,29 +1,21 @@
-import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { fetchSettings } from '../../lib/settings';
 import '../../styles/admin.css';
 
 const NAV = [
-  { to: '/admin', end: true, label: 'Dashboard', icon: '◧' },
-  { to: '/admin/vendas', end: false, label: 'Vendas', icon: '$' },
-  { to: '/admin/produtos', end: false, label: 'Produtos', icon: '▦' },
-  { to: '/admin/pedidos', end: false, label: 'Pedidos', icon: '✦' },
-  { to: '/admin/configuracoes', end: false, label: 'Configurações', icon: '⚙' },
+  { to: '/superadmin', end: true, label: 'Dashboard', icon: '◧' },
+  { to: '/superadmin/lojas', end: false, label: 'Lojas', icon: '⊞' },
 ];
 
-export function AdminLayout() {
-  const { session, signOut, stores, currentStoreId, switchStore } = useAuth();
+export function SuperAdminLayout() {
+  const { session, isSuperAdmin, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [setupPending, setSetupPending] = useState(false);
 
-  useEffect(() => {
-    if (!currentStoreId) return;
-    fetchSettings(currentStoreId).then((s) => {
-      if (!s.store.onboarding_done) setSetupPending(true);
-    }).catch(() => {});
-  }, [currentStoreId]);
+  if (!loading && !isSuperAdmin) {
+    return <Navigate to="/admin/login" replace />;
+  }
 
   const handleSignOut = async () => {
     await signOut();
@@ -31,9 +23,6 @@ export function AdminLayout() {
   };
 
   const closeMenu = () => setMenuOpen(false);
-
-  const currentStoreName =
-    stores.find((s) => s.storeId === currentStoreId)?.storeName ?? 'Admin';
 
   return (
     <div className="admin">
@@ -53,29 +42,7 @@ export function AdminLayout() {
           </button>
 
           <div className="admin__brand">
-            <img
-              className="admin__brand-img"
-              src="/logo.jpg"
-              alt="Brothers Story"
-              width={28}
-              height={28}
-            />
-            {stores.length > 1 ? (
-              <select
-                className="admin__store-select"
-                value={currentStoreId ?? ''}
-                onChange={(e) => switchStore(e.target.value)}
-                aria-label="Selecionar loja"
-              >
-                {stores.map((s) => (
-                  <option key={s.storeId} value={s.storeId}>
-                    {s.storeName}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span className="admin__brand-text">{currentStoreName}</span>
-            )}
+            <span className="admin__brand-text">Plataforma</span>
           </div>
         </div>
 
@@ -122,29 +89,16 @@ export function AdminLayout() {
         </nav>
 
         <div className="admin__sidebar-footer">
-          <a
-            className="admin__nav-link admin__nav-link--ghost"
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className="admin__nav-link admin__nav-link--ghost" href="/admin">
             <span className="admin__nav-icon" aria-hidden="true">
-              ↗
+              ←
             </span>
-            Ver loja
+            Painel da loja
           </a>
         </div>
       </aside>
 
       <main className="admin__content">
-        {setupPending && (
-          <div className="admin__setup-banner">
-            Configuração inicial pendente —{' '}
-            <NavLink to="/admin/setup" onClick={() => setSetupPending(false)}>
-              configurar agora →
-            </NavLink>
-          </div>
-        )}
         <Outlet />
       </main>
     </div>

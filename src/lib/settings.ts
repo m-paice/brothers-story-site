@@ -87,13 +87,13 @@ Fale com a gente pelo WhatsApp informando o número do pedido e o motivo da troc
   },
 };
 
-export async function fetchSettings(): Promise<StoreSettings> {
+export async function fetchSettings(storeId?: string): Promise<StoreSettings> {
   if (!supabase) return DEFAULT_SETTINGS;
-  const { data, error } = await supabase
-    .from('store_settings')
-    .select('data')
-    .eq('id', 1)
-    .maybeSingle();
+  const query = supabase.from('store_settings').select('data');
+  const { data, error } = await (storeId
+    ? query.eq('store_id', storeId)
+    : query.eq('id', 1)
+  ).maybeSingle();
 
   if (error || !data?.data) return DEFAULT_SETTINGS;
 
@@ -112,12 +112,21 @@ export async function fetchSettings(): Promise<StoreSettings> {
   };
 }
 
-export async function saveSettings(settings: StoreSettings): Promise<void> {
+export async function saveSettings(
+  settings: StoreSettings,
+  storeId?: string
+): Promise<void> {
   if (!supabase) throw new Error('Supabase não configurado.');
-  const { error } = await supabase.from('store_settings').upsert({
-    id: 1,
-    data: settings,
-    updated_at: new Date().toISOString(),
-  });
-  if (error) throw error;
+  const updated_at = new Date().toISOString();
+  if (storeId) {
+    const { error } = await supabase
+      .from('store_settings')
+      .upsert({ store_id: storeId, data: settings, updated_at });
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('store_settings')
+      .upsert({ id: 1, data: settings, updated_at });
+    if (error) throw error;
+  }
 }

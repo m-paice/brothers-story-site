@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { fetchSettings, saveSettings, DEFAULT_SETTINGS } from '../../lib/settings';
+import { useAuth } from '../../context/AuthContext';
 import { formatPrice } from '../../utils/format';
 import type { StoreSettings, WeekDay, PageKey, DayHours, PageContent } from '../../types/settings';
 
@@ -30,6 +31,7 @@ const WEEK_DAYS: { key: WeekDay; label: string }[] = [
 ];
 
 export function SettingsAdmin() {
+  const { currentStoreId } = useAuth();
   const [tab, setTab] = useState<Tab>('loja');
   const [pageTab, setPageTab] = useState<PageKey>('sobre');
   const [form, setForm] = useState<StoreSettings>(DEFAULT_SETTINGS);
@@ -39,11 +41,11 @@ export function SettingsAdmin() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSettings()
+    fetchSettings(currentStoreId ?? undefined)
       .then(setForm)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentStoreId]);
 
   const setStore = (update: Partial<StoreSettings['store']>) =>
     setForm((f) => ({ ...f, store: { ...f.store, ...update } }));
@@ -67,7 +69,7 @@ export function SettingsAdmin() {
     setSaving(true);
     setError(null);
     try {
-      await saveSettings(form);
+      await saveSettings(form, currentStoreId ?? undefined);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {

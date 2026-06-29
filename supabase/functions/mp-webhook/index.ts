@@ -10,6 +10,7 @@
 // Injetados: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ============================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { loadTenantCredentials, extractStoreId } from '../_shared/tenant.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -39,13 +40,27 @@ Deno.serve(async (req) => {
 
     if (!paymentId) return new Response('no id', { status: 200 });
 
+    const storeId = extractStoreId(req);
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    let mpToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')!;
+    let mpSecret = Deno.env.get('MERCADOPAGO_WEBHOOK_SECRET') || '';
+    if (storeId) {
+      const creds = await loadTenantCredentials(supabase, storeId);
+      if (creds.mercadopago_access_token) mpToken = creds.mercadopago_access_token;
+      if (creds.mercadopago_webhook_secret) mpSecret = creds.mercadopago_webhook_secret;
+    }
+
     // Validação de assinatura (se o secret estiver configurado).
     // Não bloqueia: o status real é sempre reconfirmado na API do Mercado Pago
     // com o access token (isso garante a autenticidade). A assinatura serve só
     // como camada extra — se não bater, registramos e seguimos.
-    const secret = Deno.env.get('MERCADOPAGO_WEBHOOK_SECRET');
-    if (secret) {
-      const ok = await verifySignature(req, String(paymentId), secret);
+    if (mpSecret) {
+      const ok = await verifySignature(req, String(paymentId), mpSecret);
       if (!ok) {
         console.warn(
           'Assinatura do webhook não confere — processando mesmo assim.'
@@ -58,7 +73,7 @@ Deno.serve(async (req) => {
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
         headers: {
-          Authorization: `Bearer ${Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')}`,
+          Authorization: `Bearer ${mpToken}`,
         },
       }
     );
@@ -71,11 +86,6 @@ Deno.serve(async (req) => {
     const orderId = payment.external_reference;
     const status = payment.status as string; // approved | pending | rejected ...
     if (!orderId) return new Response('no ref', { status: 200 });
-
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
 
     const update: Record<string, unknown> = {
       payment_status: status,

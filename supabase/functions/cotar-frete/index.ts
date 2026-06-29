@@ -10,6 +10,7 @@
 // Injetados: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ============================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { loadTenantCredentials, extractStoreId } from '../_shared/tenant.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,16 +40,23 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
+    const storeId = extractStoreId(req);
+    const creds = storeId
+      ? await loadTenantCredentials(supabase, storeId)
+      : null;
+
     // Busca peso/dimensões do produto de cada variação pedida.
     // Filtra ids inválidos (null, 0) para evitar match incorreto no .in()
     const variantIds = (items as ReqItem[])
       .map((i) => i.variant_id)
       .filter((id): id is number => id != null && id > 0);
 
-    const { data: variants, error } = await supabase
+    let variantsQuery = supabase
       .from('product_variants')
       .select('id, product:products(weight, height, width, length)')
       .in('id', variantIds);
+    if (storeId) variantsQuery = variantsQuery.eq('store_id', storeId);
+    const { data: variants, error } = await variantsQuery;
     if (error) throw error;
 
     // A SuperFrete não suporta o campo `quantity` — cada objeto no array
@@ -69,18 +77,20 @@ Deno.serve(async (req) => {
     });
 
     const baseUrl =
-      Deno.env.get('SUPERFRETE_BASE_URL') ?? 'https://sandbox.superfrete.com';
+      creds?.superfrete_base_url ||
+      Deno.env.get('SUPERFRETE_BASE_URL') ||
+      'https://sandbox.superfrete.com';
 
     const res = await fetch(`${baseUrl}/api/v0/calculator`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${Deno.env.get('SUPERFRETE_TOKEN')}`,
+        Authorization: `Bearer ${creds?.superfrete_token || Deno.env.get('SUPERFRETE_TOKEN')}`,
         'User-Agent': 'Brothers Story (contato@brothersstory.com.br)',
         accept: 'application/json',
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        from: { postal_code: Deno.env.get('ORIGIN_CEP') },
+        from: { postal_code: creds?.origin_cep || Deno.env.get('ORIGIN_CEP') },
         to: { postal_code: String(cep).replace(/\D/g, '') },
         services: '1,2,17',
         options: {

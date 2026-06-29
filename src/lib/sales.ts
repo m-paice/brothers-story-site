@@ -36,12 +36,14 @@ export async function createSale(payload: NewSale): Promise<Sale> {
   return data as Sale;
 }
 
-export async function fetchSales(): Promise<Sale[]> {
+export async function fetchSales(storeId?: string): Promise<Sale[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from('sales')
     .select('*')
     .order('created_at', { ascending: false });
+  if (storeId) query = query.eq('store_id', storeId);
+  const { data, error } = await query;
   if (error) throw error;
   return data as Sale[];
 }

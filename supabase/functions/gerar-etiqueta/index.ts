@@ -10,6 +10,7 @@
 //   SENDER_COMPLEMENT, SENDER_DISTRICT, SENDER_CITY, SENDER_STATE
 // ============================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { loadTenantCredentials, storeIdForAdmin } from '../_shared/tenant.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +50,14 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single();
     if (prof?.role !== 'admin') return json({ error: 'Sem permissão.' }, 403);
+
+    const storeId = await storeIdForAdmin(admin, user.id);
+    const creds = storeId ? await loadTenantCredentials(admin, storeId) : null;
+    const sfToken = creds?.superfrete_token || Deno.env.get('SUPERFRETE_TOKEN') || '';
+    const sfBase =
+      creds?.superfrete_base_url ||
+      Deno.env.get('SUPERFRETE_BASE_URL') ||
+      'https://sandbox.superfrete.com';
 
     // --- Pedido ------------------------------------------------------------
     const { order_id } = await req.json();
@@ -99,15 +108,15 @@ Deno.serve(async (req) => {
 
     const cartBody = {
       from: {
-        name: Deno.env.get('SENDER_NAME'),
-        document: onlyDigits(Deno.env.get('SENDER_DOCUMENT') ?? ''),
-        address: Deno.env.get('SENDER_ADDRESS'),
-        number: Deno.env.get('SENDER_NUMBER') ?? '',
-        complement: Deno.env.get('SENDER_COMPLEMENT') ?? '',
-        district: Deno.env.get('SENDER_DISTRICT') ?? 'NA',
-        city: Deno.env.get('SENDER_CITY'),
-        state_abbr: Deno.env.get('SENDER_STATE'),
-        postal_code: onlyDigits(Deno.env.get('ORIGIN_CEP') ?? ''),
+        name: creds?.sender_name || Deno.env.get('SENDER_NAME'),
+        document: onlyDigits(creds?.sender_document || Deno.env.get('SENDER_DOCUMENT') || ''),
+        address: creds?.sender_address || Deno.env.get('SENDER_ADDRESS'),
+        number: creds?.sender_number || Deno.env.get('SENDER_NUMBER') || '',
+        complement: creds?.sender_complement || Deno.env.get('SENDER_COMPLEMENT') || '',
+        district: creds?.sender_district || Deno.env.get('SENDER_DISTRICT') || 'NA',
+        city: creds?.sender_city || Deno.env.get('SENDER_CITY'),
+        state_abbr: creds?.sender_state || Deno.env.get('SENDER_STATE'),
+        postal_code: onlyDigits(creds?.origin_cep || Deno.env.get('ORIGIN_CEP') || ''),
       },
       to: {
         name: cu.nome,
@@ -139,14 +148,11 @@ Deno.serve(async (req) => {
       },
     };
 
-    const base =
-      Deno.env.get('SUPERFRETE_BASE_URL') ?? 'https://sandbox.superfrete.com';
-    const token = Deno.env.get('SUPERFRETE_TOKEN');
     const sf = (path: string, body: unknown) =>
-      fetch(`${base}${path}`, {
+      fetch(`${sfBase}${path}`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${sfToken}`,
           'User-Agent': 'Brothers Story (contato@brothersstory.com.br)',
           accept: 'application/json',
           'content-type': 'application/json',

@@ -37,23 +37,27 @@ export async function createOrder(payload: NewOrder): Promise<Order> {
   return data as Order;
 }
 
-export async function fetchOrders(): Promise<Order[]> {
+export async function fetchOrders(storeId?: string): Promise<Order[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });
+  if (storeId) query = query.eq('store_id', storeId);
+  const { data, error } = await query;
   if (error) throw error;
   return data as Order[];
 }
 
 /** Pedidos do cliente logado (a RLS já restringe aos próprios). */
-export async function fetchMyOrders(): Promise<Order[]> {
+export async function fetchMyOrders(storeId?: string): Promise<Order[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });
+  if (storeId) query = query.eq('store_id', storeId);
+  const { data, error } = await query;
   if (error) throw error;
   return data as Order[];
 }

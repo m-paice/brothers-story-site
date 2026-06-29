@@ -1,35 +1,44 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import '../../styles/admin.css';
 
 export function Login() {
-  const { session, signIn, configured } = useAuth();
+  const { session, signIn, configured, isSuperAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [pendingRedirect, setPendingRedirect] = useState(false);
 
-  // Já autenticado: vai direto para o painel
-  if (session) {
-    const from = (location.state as { from?: Location })?.from?.pathname;
-    return <Navigate to={from ?? '/admin'} replace />;
+  const from = (location.state as { from?: Location })?.from?.pathname;
+
+  // Já autenticado ao abrir a página
+  if (session && !pendingRedirect) {
+    return <Navigate to={from ?? (isSuperAdmin ? '/superadmin' : '/admin')} replace />;
   }
+
+  // Aguarda o perfil carregar depois do signIn para decidir para onde ir
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (pendingRedirect && session && !authLoading) {
+      navigate(from ?? (isSuperAdmin ? '/superadmin' : '/admin'), { replace: true });
+    }
+  }, [pendingRedirect, session, authLoading, isSuperAdmin, navigate, from]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setLoading(true);
+    setSubmitting(true);
     try {
       await signIn(email, password);
-      navigate('/admin', { replace: true });
+      setPendingRedirect(true);
     } catch {
       setError('E-mail ou senha inválidos.');
-    } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -85,9 +94,9 @@ export function Login() {
         <button
           className="login__submit"
           type="submit"
-          disabled={loading || !configured}
+          disabled={submitting || !configured}
         >
-          {loading ? 'Entrando…' : 'Entrar'}
+          {submitting ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
     </div>

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { CartEntry } from '../types/cart';
+import { useTenant } from './TenantContext';
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -16,6 +17,11 @@ function loadFromStorage<T>(key: string, fallback: T): T {
     return fallback;
   }
 }
+
+const cartKey = (storeId: string | null) =>
+  `ef:cart:${storeId ?? 'default'}:v2`;
+const favKey = (storeId: string | null) =>
+  `ef:favorites:${storeId ?? 'default'}`;
 
 interface CartContextValue {
   entries: CartEntry[];
@@ -44,22 +50,28 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { storeId } = useTenant();
   const [entries, setEntries] = useState<CartEntry[]>(() =>
-    loadFromStorage<CartEntry[]>('ef:cart:v2', [])
+    loadFromStorage<CartEntry[]>(cartKey(storeId), [])
   );
   const [favorites, setFavorites] = useState<number[]>(() =>
-    loadFromStorage<number[]>('ef:favorites', [])
+    loadFromStorage<number[]>(favKey(storeId), [])
   );
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('ef:cart:v2', JSON.stringify(entries));
-  }, [entries]);
+    setEntries(loadFromStorage<CartEntry[]>(cartKey(storeId), []));
+    setFavorites(loadFromStorage<number[]>(favKey(storeId), []));
+  }, [storeId]);
 
   useEffect(() => {
-    localStorage.setItem('ef:favorites', JSON.stringify(favorites));
-  }, [favorites]);
+    localStorage.setItem(cartKey(storeId), JSON.stringify(entries));
+  }, [entries, storeId]);
+
+  useEffect(() => {
+    localStorage.setItem(favKey(storeId), JSON.stringify(favorites));
+  }, [favorites, storeId]);
 
   const addItem = (entry: Omit<CartEntry, 'qty'>, qty = 1) => {
     setEntries((prev) => {

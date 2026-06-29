@@ -11,6 +11,7 @@
 // Injetados pelo Supabase: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // ============================================================================
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { loadTenantCredentials, extractStoreId } from '../_shared/tenant.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,11 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    const storeId = extractStoreId(req);
+    const creds = storeId
+      ? await loadTenantCredentials(supabase, storeId)
+      : null;
 
     // Identifica o cliente logado pelo JWT enviado no Authorization.
     let userId: string | null = null;
@@ -119,17 +125,19 @@ Deno.serve(async (req) => {
     });
 
     const baseUrl =
-      Deno.env.get('SUPERFRETE_BASE_URL') ?? 'https://sandbox.superfrete.com';
+      creds?.superfrete_base_url ||
+      Deno.env.get('SUPERFRETE_BASE_URL') ||
+      'https://sandbox.superfrete.com';
     const freteRes = await fetch(`${baseUrl}/api/v0/calculator`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${Deno.env.get('SUPERFRETE_TOKEN')}`,
+        Authorization: `Bearer ${creds?.superfrete_token || Deno.env.get('SUPERFRETE_TOKEN')}`,
         'User-Agent': 'Brothers Story (contato@brothersstory.com.br)',
         accept: 'application/json',
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        from: { postal_code: Deno.env.get('ORIGIN_CEP') },
+        from: { postal_code: creds?.origin_cep || Deno.env.get('ORIGIN_CEP') },
         to: { postal_code: String(shipping?.cep ?? '').replace(/\D/g, '') },
         services: '1,2,17',
         options: {
@@ -160,6 +168,7 @@ Deno.serve(async (req) => {
         status: 'aguardando_pagamento',
         payment_status: 'pending',
         user_id: userId,
+        ...(storeId ? { store_id: storeId } : {}),
         customer: { ...customer, cpf },
         shipping,
         items: orderItems,
@@ -175,7 +184,8 @@ Deno.serve(async (req) => {
     if (oErr) throw oErr;
 
     // Cria a preferência no Mercado Pago.
-    const siteUrl = Deno.env.get('SITE_URL') ?? '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const siteUrl = creds?.site_url || Deno.env.get('SITE_URL') || '';
     const preferenceBody = {
       items: orderItems.map((i) => ({
         title: `${i.name} (${i.size})`,
@@ -193,7 +203,7 @@ Deno.serve(async (req) => {
         failure: `${siteUrl}/pagamento/erro`,
       },
       auto_return: 'approved',
-      notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mp-webhook`,
+      notification_url: `${supabaseUrl}/functions/v1/mp-webhook${storeId ? `?tenant_id=${storeId}` : ''}`,
       metadata: { order_id: order.id },
     };
 
@@ -203,7 +213,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')}`,
+          Authorization: `Bearer ${creds?.mercadopago_access_token || Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')}`,
         },
         body: JSON.stringify(preferenceBody),
       }

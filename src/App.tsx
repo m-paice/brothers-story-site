@@ -22,6 +22,11 @@ import { OrdersAdmin } from './pages/admin/OrdersAdmin';
 import { SalesAdmin } from './pages/admin/SalesAdmin';
 import { SettingsAdmin } from './pages/admin/SettingsAdmin';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
+import { SuperAdmin } from './pages/admin/SuperAdmin';
+import { SuperAdminLayout } from './pages/admin/SuperAdminLayout';
+import { SuperAdminDashboard } from './pages/admin/SuperAdminDashboard';
+import { CriarLoja } from './pages/CriarLoja';
+import { Setup } from './pages/admin/Setup';
 
 function App() {
   return (
@@ -53,6 +58,8 @@ function App() {
       <Route path="/trocas" element={<Trocas />} />
       <Route path="/contato" element={<Contato />} />
 
+      <Route path="/criar-loja" element={<CriarLoja />} />
+
       <Route path="/admin/login" element={<Login />} />
       <Route
         path="/admin"
@@ -67,6 +74,12 @@ function App() {
         <Route path="produtos" element={<ProductsAdmin />} />
         <Route path="pedidos" element={<OrdersAdmin />} />
         <Route path="configuracoes" element={<SettingsAdmin />} />
+        <Route path="setup" element={<Setup />} />
+      </Route>
+
+      <Route path="/superadmin" element={<SuperAdminLayout />}>
+        <Route index element={<SuperAdminDashboard />} />
+        <Route path="lojas" element={<SuperAdmin />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
