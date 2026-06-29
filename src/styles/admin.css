@@ -1380,6 +1380,17 @@
   width: 100%;
   padding-left: calc(var(--space-3) + 1.8ch);
 }
+.settings-field__reveal {
+  position: absolute;
+  right: var(--space-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  padding: 0;
+}
 
 /* Tabela de horários */
 .settings-hours {

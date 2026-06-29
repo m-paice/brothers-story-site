@@ -1,17 +1,57 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { fetchSettings, saveSettings, DEFAULT_SETTINGS } from '../../lib/settings';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from '../../lib/supabase';
 import { formatPrice } from '../../utils/format';
 import type { StoreSettings, WeekDay, PageKey, DayHours, PageContent } from '../../types/settings';
 
-type Tab = 'loja' | 'horarios' | 'frete' | 'paginas';
+type Tab = 'loja' | 'horarios' | 'frete' | 'paginas' | 'integracoes';
 
 const TABS: { value: Tab; label: string }[] = [
   { value: 'loja', label: 'Loja' },
   { value: 'horarios', label: 'Horários' },
   { value: 'frete', label: 'Frete' },
   { value: 'paginas', label: 'Páginas' },
+  { value: 'integracoes', label: 'Integrações' },
 ];
+
+interface TenantCredentials {
+  superfrete_token: string;
+  superfrete_base_url: string;
+  origin_cep: string;
+  mercadopago_access_token: string;
+  mercadopago_webhook_secret: string;
+  site_url: string;
+  sender_name: string;
+  sender_document: string;
+  sender_email: string;
+  sender_phone: string;
+  sender_address: string;
+  sender_number: string;
+  sender_complement: string;
+  sender_district: string;
+  sender_city: string;
+  sender_state: string;
+}
+
+const DEFAULT_CREDS: TenantCredentials = {
+  superfrete_token: '',
+  superfrete_base_url: 'https://sandbox.superfrete.com',
+  origin_cep: '',
+  mercadopago_access_token: '',
+  mercadopago_webhook_secret: '',
+  site_url: '',
+  sender_name: '',
+  sender_document: '',
+  sender_email: '',
+  sender_phone: '',
+  sender_address: '',
+  sender_number: '',
+  sender_complement: '',
+  sender_district: '',
+  sender_city: '',
+  sender_state: '',
+};
 
 const PAGE_TABS: { value: PageKey; label: string }[] = [
   { value: 'sobre', label: 'Sobre' },
@@ -35,14 +75,46 @@ export function SettingsAdmin() {
   const [tab, setTab] = useState<Tab>('loja');
   const [pageTab, setPageTab] = useState<PageKey>('sobre');
   const [form, setForm] = useState<StoreSettings>(DEFAULT_SETTINGS);
+  const [creds, setCreds] = useState<TenantCredentials>(DEFAULT_CREDS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSettings(currentStoreId ?? undefined)
-      .then(setForm)
+    const storeId = currentStoreId ?? undefined;
+    Promise.all([
+      fetchSettings(storeId).then(setForm),
+      supabase && currentStoreId
+        ? supabase
+            .from('tenant_credentials')
+            .select('*')
+            .eq('store_id', currentStoreId)
+            .maybeSingle()
+            .then(({ data }) => {
+              if (data) {
+                setCreds({
+                  superfrete_token: data.superfrete_token ?? '',
+                  superfrete_base_url: data.superfrete_base_url ?? 'https://sandbox.superfrete.com',
+                  origin_cep: data.origin_cep ?? '',
+                  mercadopago_access_token: data.mercadopago_access_token ?? '',
+                  mercadopago_webhook_secret: data.mercadopago_webhook_secret ?? '',
+                  site_url: data.site_url ?? '',
+                  sender_name: data.sender_name ?? '',
+                  sender_document: data.sender_document ?? '',
+                  sender_email: data.sender_email ?? '',
+                  sender_phone: data.sender_phone ?? '',
+                  sender_address: data.sender_address ?? '',
+                  sender_number: data.sender_number ?? '',
+                  sender_complement: data.sender_complement ?? '',
+                  sender_district: data.sender_district ?? '',
+                  sender_city: data.sender_city ?? '',
+                  sender_state: data.sender_state ?? '',
+                });
+              }
+            })
+        : Promise.resolve(),
+    ])
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [currentStoreId]);
@@ -65,11 +137,22 @@ export function SettingsAdmin() {
       pages: { ...f.pages, [page]: { ...f.pages[page], ...update } },
     }));
 
+  const setCred = (update: Partial<TenantCredentials>) =>
+    setCreds((c) => ({ ...c, ...update }));
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
     try {
-      await saveSettings(form, currentStoreId ?? undefined);
+      if (tab === 'integracoes') {
+        if (!supabase || !currentStoreId) throw new Error('Sem conexão.');
+        const { error: upsertErr } = await supabase
+          .from('tenant_credentials')
+          .upsert({ store_id: currentStoreId, ...creds }, { onConflict: 'store_id' });
+        if (upsertErr) throw upsertErr;
+      } else {
+        await saveSettings(form, currentStoreId ?? undefined);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
@@ -260,6 +343,82 @@ export function SettingsAdmin() {
         </section>
       )}
 
+      {/* ---- Integrações ---- */}
+      {tab === 'integracoes' && (
+        <>
+          <section className="settings__section">
+            <h2 className="settings__section-title">SuperFrete</h2>
+            <p className="settings__hint">Credenciais para cotação e geração de etiquetas.</p>
+            <div className="settings-grid">
+              <FieldSecret
+                label="Token"
+                value={creds.superfrete_token}
+                onChange={(v) => setCred({ superfrete_token: v })}
+              />
+              <Field
+                label="CEP de origem"
+                value={creds.origin_cep}
+                onChange={(v) => setCred({ origin_cep: v.replace(/\D/g, '').slice(0, 8) })}
+              />
+              <div className="settings-field">
+                <label>Ambiente</label>
+                <select
+                  className="admin-select"
+                  value={creds.superfrete_base_url}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    setCred({ superfrete_base_url: e.target.value })
+                  }
+                >
+                  <option value="https://sandbox.superfrete.com">Sandbox (testes)</option>
+                  <option value="https://www.superfrete.com">Produção</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          <section className="settings__section">
+            <h2 className="settings__section-title">Mercado Pago</h2>
+            <p className="settings__hint">Credenciais para processamento de pagamentos.</p>
+            <div className="settings-grid">
+              <FieldSecret
+                label="Access Token"
+                value={creds.mercadopago_access_token}
+                onChange={(v) => setCred({ mercadopago_access_token: v })}
+              />
+              <FieldSecret
+                label="Webhook Secret (opcional)"
+                value={creds.mercadopago_webhook_secret}
+                onChange={(v) => setCred({ mercadopago_webhook_secret: v })}
+              />
+              <Field
+                label="URL do site (ex: https://minhaloja.com)"
+                value={creds.site_url}
+                onChange={(v) => setCred({ site_url: v })}
+              />
+            </div>
+          </section>
+
+          <section className="settings__section">
+            <h2 className="settings__section-title">Dados do remetente</h2>
+            <p className="settings__hint">Usados nas etiquetas de frete geradas via SuperFrete.</p>
+            <div className="settings-grid">
+              <Field label="Nome completo" value={creds.sender_name} onChange={(v) => setCred({ sender_name: v })} />
+              <Field label="CPF ou CNPJ" value={creds.sender_document} onChange={(v) => setCred({ sender_document: v })} />
+              <Field label="E-mail" value={creds.sender_email} onChange={(v) => setCred({ sender_email: v })} />
+              <Field label="Telefone" value={creds.sender_phone} onChange={(v) => setCred({ sender_phone: v })} />
+            </div>
+            <div className="settings-grid" style={{ marginTop: 'var(--space-4)' }}>
+              <Field label="Endereço" value={creds.sender_address} onChange={(v) => setCred({ sender_address: v })} />
+              <Field label="Número" value={creds.sender_number} onChange={(v) => setCred({ sender_number: v })} />
+              <Field label="Complemento" value={creds.sender_complement} onChange={(v) => setCred({ sender_complement: v })} />
+              <Field label="Bairro" value={creds.sender_district} onChange={(v) => setCred({ sender_district: v })} />
+              <Field label="Cidade" value={creds.sender_city} onChange={(v) => setCred({ sender_city: v })} />
+              <Field label="Estado (UF)" value={creds.sender_state} onChange={(v) => setCred({ sender_state: v.toUpperCase().slice(0, 2) })} />
+            </div>
+          </section>
+        </>
+      )}
+
       {/* ---- Barra de salvar ---- */}
       <div className="settings__save-bar">
         {saved && <span className="settings__saved">✓ Salvo com sucesso</span>}
@@ -294,6 +453,39 @@ function Field({
         value={value}
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
       />
+    </div>
+  );
+}
+
+function FieldSecret({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="settings-field">
+      <label>{label}</label>
+      <div className="settings-field__prefix-wrap">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+          style={{ paddingRight: 'calc(var(--space-3) * 2 + 3ch)' }}
+        />
+        <button
+          type="button"
+          className="settings-field__reveal"
+          onClick={() => setShow((s) => !s)}
+          aria-label={show ? 'Ocultar' : 'Mostrar'}
+        >
+          {show ? '🙈' : '👁'}
+        </button>
+      </div>
     </div>
   );
 }
