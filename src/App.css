@@ -1528,6 +1528,9 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+.account-order__timer {
+  padding: 0 var(--space-5) var(--space-4);
+}
 
 /* Layout da conta: navegação lateral + conteúdo */
 .account-page {

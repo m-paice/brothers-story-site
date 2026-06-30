@@ -117,10 +117,12 @@ export function AccountOrders() {
                 </button>
 
                 {order.status === 'aguardando_pagamento' && order.expires_at && (
-                  <PaymentTimer
-                    expiresAt={order.expires_at}
-                    onExpired={() => window.location.reload()}
-                  />
+                  <div className="account-order__timer">
+                    <PaymentTimer
+                      expiresAt={order.expires_at}
+                      onExpired={() => window.location.reload()}
+                    />
+                  </div>
                 )}
 
                 {isOpen && (
