@@ -144,6 +144,94 @@
   color: var(--color-text-secondary);
 }
 
+/* Hambúrguer da conta (mobile, só em /minha-conta) */
+.header__account-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition);
+}
+.header__account-hamburger:hover {
+  background: var(--color-surface-2);
+}
+.header__account-hamburger span {
+  display: block;
+  height: 2px;
+  background: var(--color-text);
+  border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.header__account-hamburger--open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.header__account-hamburger--open span:nth-child(2) {
+  opacity: 0;
+}
+.header__account-hamburger--open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+.header__account-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 40;
+}
+.header__account-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: var(--space-4);
+  right: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  box-shadow: var(--shadow-hover);
+  overflow: hidden;
+}
+.header__account-link {
+  padding: var(--space-4) var(--space-5);
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition), color var(--transition);
+}
+.header__account-link:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+.header__account-link--active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.header__account-signout {
+  padding: var(--space-4) var(--space-5);
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  text-align: left;
+  transition: background var(--transition), color var(--transition);
+}
+.header__account-signout:hover {
+  background: var(--color-surface-2);
+  color: var(--color-danger);
+}
+@media (max-width: 767px) {
+  .header__account-hamburger {
+    display: flex;
+  }
+  .header {
+    position: relative;
+  }
+}
+
 .header__store-link {
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-border);
@@ -1585,6 +1673,7 @@
 .account-nav__signout:hover {
   color: var(--color-danger);
 }
+
 .account-content {
   min-width: 0;
 }
@@ -1647,18 +1736,10 @@
 @media (max-width: 767px) {
   .account-page {
     grid-template-columns: 1fr;
-    gap: var(--space-4);
+    gap: 0;
   }
   .account-nav {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .account-nav__email {
-    width: 100%;
-    border-bottom: none;
-    margin-bottom: 0;
-    padding-bottom: var(--space-1);
+    display: none;
   }
   .address-list {
     grid-template-columns: 1fr;

@@ -1,32 +1,54 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { PRIMARY_NAV } from '../data/navigation';
 import { useAuth } from '../context/AuthContext';
+import { ACCOUNT_NAV } from '../pages/account/AccountLayout';
 
 interface HeaderProps {
   search: string;
   onSearchChange: (value: string) => void;
   cartCount: number;
   onOpenCart: () => void;
+  isAccountPage: boolean;
 }
 
-/**
- * Cabeçalho fixo: logo da marca, navegação central e ações (busca, conta, carrinho).
- * No mobile o cabeçalho empilha e a barra de busca fica sempre visível.
- */
 export function Header({
   search,
   onSearchChange,
   cartCount,
   onOpenCart,
+  isAccountPage,
 }: HeaderProps) {
-  // Busca expandível no desktop (no mobile a barra fica sempre visível via CSS)
   const [searchOpen, setSearchOpen] = useState(false);
-  const { session } = useAuth();
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const { session, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const closeAccountMenu = () => setAccountMenuOpen(false);
+
+  const handleSignOut = async () => {
+    closeAccountMenu();
+    await signOut();
+    navigate('/', { replace: true });
+  };
 
   return (
     <header className="header">
       <div className="header__inner container">
+        {/* Hambúrguer da conta — mobile, só em /minha-conta */}
+        {isAccountPage && (
+          <button
+            className={`header__account-hamburger${accountMenuOpen ? ' header__account-hamburger--open' : ''}`}
+            onClick={() => setAccountMenuOpen((o) => !o)}
+            aria-label="Menu da conta"
+            aria-expanded={accountMenuOpen}
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+        )}
+
         {/* Logo */}
         <Link to="/" className="header__logo">
           <img
@@ -82,7 +104,7 @@ export function Header({
           </button>
         </div>
 
-        {/* Barra de busca (sempre visível no mobile; toggle no desktop) */}
+        {/* Barra de busca */}
         <div
           className={`header__search ${
             searchOpen ? 'header__search--open' : ''
@@ -98,6 +120,33 @@ export function Header({
           />
         </div>
       </div>
+
+      {/* Dropdown da conta — mobile */}
+      {isAccountPage && accountMenuOpen && (
+        <>
+          <div
+            className="header__account-overlay"
+            onClick={closeAccountMenu}
+          />
+          <nav className="header__account-menu">
+            {ACCOUNT_NAV.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `header__account-link${isActive ? ' header__account-link--active' : ''}`
+                }
+                onClick={closeAccountMenu}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+            <button className="header__account-signout" onClick={handleSignOut}>
+              Sair
+            </button>
+          </nav>
+        </>
+      )}
     </header>
   );
 }

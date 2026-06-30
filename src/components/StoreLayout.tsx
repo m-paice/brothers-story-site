@@ -32,6 +32,7 @@ export function StoreLayout() {
         onSearchChange={handleSearch}
         cartCount={cart.count}
         onOpenCart={cart.openCart}
+        isAccountPage={location.pathname.startsWith('/minha-conta')}
       />
 
       <Outlet context={{ search } satisfies StoreOutletContext} />

@@ -8,6 +8,8 @@ const NAV = [
   { to: '/minha-conta/pedidos', label: 'Pedidos' },
 ];
 
+export { NAV as ACCOUNT_NAV };
+
 export function AccountLayout() {
   const { session, loading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -31,9 +33,7 @@ export function AccountLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `account-nav__link ${
-                  isActive ? 'account-nav__link--active' : ''
-                }`
+                `account-nav__link ${isActive ? 'account-nav__link--active' : ''}`
               }
             >
               {item.label}
