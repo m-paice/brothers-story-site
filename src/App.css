@@ -1507,6 +1507,28 @@
   font-size: 0.95rem;
 }
 
+.account-order__pay-btn {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.account-order__pay-btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.account-order__pay-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Layout da conta: navegação lateral + conteúdo */
 .account-page {
   display: grid;

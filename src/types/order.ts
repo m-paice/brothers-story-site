@@ -57,6 +57,7 @@ export interface Order {
   shipping_service_id: number | null;
   label_url: string | null;
   superfrete_order_id: string | null;
+  mp_init_point: string | null;
   created_at: string;
 }
 
@@ -76,6 +77,7 @@ export type NewOrder = Omit<
   | 'shipping_service_id'
   | 'label_url'
   | 'superfrete_order_id'
+  | 'mp_init_point'
 >;
 
 // Rótulos e cores de status para exibição no admin

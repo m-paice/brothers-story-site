@@ -225,10 +225,10 @@ Deno.serve(async (req) => {
       throw new Error('Falha ao criar a preferência de pagamento.');
     }
 
-    // Guarda a referência da preferência no pedido.
+    // Guarda a referência da preferência e o link de checkout no pedido.
     await supabase
       .from('orders')
-      .update({ payment_id: pref.id })
+      .update({ payment_id: pref.id, mp_init_point: pref.init_point })
       .eq('id', order.id);
 
     return json({

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchMyOrders } from '../../lib/orders';
 import { formatPrice } from '../../utils/format';
 import { ORDER_STATUS_META, ORDER_TIMELINE, type Order } from '../../types/order';
+import { supabase } from '../../lib/supabase';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('pt-BR', {
@@ -40,10 +41,28 @@ function Timeline({ order }: { order: Order }) {
   );
 }
 
+async function retryPayment(order: Order): Promise<void> {
+  // Tenta usar o init_point salvo; se ausente ou falhar, gera uma nova preferência.
+  if (order.mp_init_point) {
+    window.location.href = order.mp_init_point;
+    return;
+  }
+  if (!supabase) return;
+  const { data, error } = await supabase.functions.invoke('recriar-pagamento', {
+    body: { order_id: order.id },
+  });
+  if (error || data?.error) {
+    alert('Não foi possível gerar o link de pagamento. Tente novamente.');
+    return;
+  }
+  window.location.href = data.init_point;
+}
+
 export function AccountOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMyOrders()
@@ -99,6 +118,20 @@ export function AccountOrders() {
                 {isOpen && (
                   <div className="account-order__detail">
                     <Timeline order={order} />
+
+                    {order.status === 'aguardando_pagamento' && (
+                      <button
+                        className="account-order__pay-btn"
+                        disabled={retrying === order.id}
+                        onClick={async () => {
+                          setRetrying(order.id);
+                          await retryPayment(order);
+                          setRetrying(null);
+                        }}
+                      >
+                        {retrying === order.id ? 'Aguarde…' : 'Concluir pagamento'}
+                      </button>
+                    )}
 
                     {order.tracking_code && (
                       <p className="account-order__tracking">

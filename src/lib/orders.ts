@@ -22,6 +22,7 @@ export async function createOrder(payload: NewOrder): Promise<Order> {
       shipping_service_id: null,
       label_url: null,
       superfrete_order_id: null,
+      mp_init_point: null,
       created_at: now.toISOString(),
       ...payload,
     };
