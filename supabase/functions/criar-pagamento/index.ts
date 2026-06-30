@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
         shipping_service: shippingService,
         shipping_service_id: chosen.id,
         total,
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       })
       .select('id, order_number')
       .single();

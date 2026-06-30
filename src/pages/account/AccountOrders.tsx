@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { fetchMyOrders } from '../../lib/orders';
 import { formatPrice } from '../../utils/format';
 import { ORDER_STATUS_META, ORDER_TIMELINE, type Order } from '../../types/order';
+import { PaymentTimer } from '../../components/PaymentTimer';
 import { supabase } from '../../lib/supabase';
 
 const formatDate = (iso: string) =>
@@ -114,6 +115,13 @@ export function AccountOrders() {
                     {isOpen ? '▴' : '▾'}
                   </span>
                 </button>
+
+                {order.status === 'aguardando_pagamento' && order.expires_at && (
+                  <PaymentTimer
+                    expiresAt={order.expires_at}
+                    onExpired={() => window.location.reload()}
+                  />
+                )}
 
                 {isOpen && (
                   <div className="account-order__detail">

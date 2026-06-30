@@ -52,6 +52,7 @@ export interface Order {
   payment_id: string | null;
   payment_status: string | null;
   paid_at: string | null;
+  expires_at: string | null;
   user_id: string | null;
   tracking_code: string | null;
   shipping_service_id: number | null;
@@ -78,6 +79,7 @@ export type NewOrder = Omit<
   | 'label_url'
   | 'superfrete_order_id'
   | 'mp_init_point'
+  | 'expires_at'
 >;
 
 // Rótulos e cores de status para exibição no admin
