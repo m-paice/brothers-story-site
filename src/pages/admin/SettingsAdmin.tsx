@@ -175,7 +175,8 @@ export function SettingsAdmin() {
           );
         if (upsertErr) throw upsertErr;
       } else {
-        await saveSettings(form, currentStoreId ?? undefined);
+        if (!currentStoreId) throw new Error('Sem conexão.');
+        await saveSettings(form, currentStoreId);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);

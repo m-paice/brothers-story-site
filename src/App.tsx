@@ -22,6 +22,8 @@ import { OrdersAdmin } from './pages/admin/OrdersAdmin';
 import { SalesAdmin } from './pages/admin/SalesAdmin';
 import { SettingsAdmin } from './pages/admin/SettingsAdmin';
 import { ProtectedRoute } from './components/admin/ProtectedRoute';
+import { OwnerRoute } from './components/admin/OwnerRoute';
+import { FuncionariosAdmin } from './pages/admin/FuncionariosAdmin';
 import { SuperAdmin } from './pages/admin/SuperAdmin';
 import { SuperAdminLayout } from './pages/admin/SuperAdminLayout';
 import { SuperAdminDashboard } from './pages/admin/SuperAdminDashboard';
@@ -69,11 +71,12 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<OwnerRoute><Dashboard /></OwnerRoute>} />
         <Route path="vendas" element={<SalesAdmin />} />
         <Route path="produtos" element={<ProductsAdmin />} />
         <Route path="pedidos" element={<OrdersAdmin />} />
-        <Route path="configuracoes" element={<SettingsAdmin />} />
+        <Route path="equipe" element={<OwnerRoute><FuncionariosAdmin /></OwnerRoute>} />
+        <Route path="configuracoes" element={<OwnerRoute><SettingsAdmin /></OwnerRoute>} />
         <Route path="setup" element={<Setup />} />
       </Route>
 

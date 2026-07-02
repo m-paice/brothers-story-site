@@ -27,6 +27,8 @@ export interface Sale {
   paid: boolean;
   paid_at: string | null;
   created_at: string;
+  sold_by: string | null;
+  seller: { nome: string | null } | null;
 }
 
 // Payload enviado ao registrar a venda (sem campos gerados pelo banco)

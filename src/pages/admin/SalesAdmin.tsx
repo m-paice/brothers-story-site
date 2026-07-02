@@ -93,7 +93,7 @@ export function SalesAdmin() {
 
   const handleSave = async (payload: NewSale) => {
     // Erros (ex.: estoque) sobem para o modal exibir.
-    await createSale(payload);
+    await createSale(payload, currentStoreId ?? undefined);
     reload();
   };
 
@@ -239,6 +239,8 @@ export function SalesAdmin() {
                           {formatPrice(Number(sale.total))}
                         </span>
                       </div>
+                      <p className="order-detail__title">Vendido por</p>
+                      <p>{sale.seller?.nome ?? '—'}</p>
                     </section>
 
                     {sale.payment_method === 'prazo' && (

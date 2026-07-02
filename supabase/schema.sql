@@ -13,6 +13,13 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
+CREATE EXTENSION IF NOT EXISTS "pg_cron" WITH SCHEMA "pg_catalog";
+
+
+
+
+
+
 COMMENT ON SCHEMA "public" IS 'standard public schema';
 
 
@@ -48,48 +55,49 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 CREATE OR REPLACE FUNCTION "public"."apply_stock_on_order_change"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     AS $$
-declare
-  item jsonb; vid bigint; qty integer; available integer;
-  old_held boolean; new_held boolean;
-begin
-  old_held := (tg_op in ('UPDATE', 'DELETE'))
-              and old.status in ('confirmado', 'pago');
-  new_held := (tg_op in ('INSERT', 'UPDATE'))
-              and new.status in ('confirmado', 'pago');
+DECLARE
+  old_held boolean;
+  new_held boolean;
+  item     jsonb;
+  vid      bigint;
+  qty      int;
+  avail    int;
+BEGIN
+  -- status que "segura" estoque: aguardando_pagamento, confirmado, pago
+  old_held := (tg_op IN ('UPDATE', 'DELETE'))
+              AND old.status IN ('aguardando_pagamento', 'confirmado', 'pago');
+  new_held := (tg_op IN ('INSERT', 'UPDATE'))
+              AND new.status IN ('aguardando_pagamento', 'confirmado', 'pago');
 
-  if old_held = new_held then
-    return case when tg_op = 'DELETE' then old else new end;
-  end if;
+  -- LIBERA estoque: era held, deixou de ser (cancelado, etc.)
+  IF old_held AND NOT new_held THEN
+    FOR item IN SELECT * FROM jsonb_array_elements(old.items) LOOP
+      vid := (item->>'variant_id')::bigint;
+      qty := (item->>'qty')::int;
+      IF vid IS NOT NULL THEN
+        UPDATE public.product_variants SET stock = stock + qty WHERE id = vid;
+      END IF;
+    END LOOP;
+  END IF;
 
-  if new_held then
-    for item in select jsonb_array_elements(new.items) loop
-      vid := nullif(item->>'variant_id', '')::bigint;
-      qty := (item->>'qty')::integer;
-      if vid is null then continue; end if;
-      select stock into available from public.product_variants where id = vid for update;
-      if available is null then continue; end if;
-      if available < qty then
-        raise exception 'Estoque insuficiente para "%" (disponível %, pedido %)',
-          coalesce(item->>'name', vid::text), available, qty using errcode = 'P0001';
-      end if;
-    end loop;
-    for item in select jsonb_array_elements(new.items) loop
-      vid := nullif(item->>'variant_id', '')::bigint;
-      if vid is not null then
-        update public.product_variants set stock = stock - (item->>'qty')::integer where id = vid;
-      end if;
-    end loop;
-  else
-    for item in select jsonb_array_elements(old.items) loop
-      vid := nullif(item->>'variant_id', '')::bigint;
-      if vid is not null then
-        update public.product_variants set stock = stock + (item->>'qty')::integer where id = vid;
-      end if;
-    end loop;
-  end if;
+  -- RESERVA estoque: passou a ser held (INSERT ou mudança de status)
+  IF new_held AND NOT old_held THEN
+    FOR item IN SELECT * FROM jsonb_array_elements(new.items) LOOP
+      vid := (item->>'variant_id')::bigint;
+      qty := (item->>'qty')::int;
+      IF vid IS NOT NULL THEN
+        SELECT stock INTO avail FROM public.product_variants WHERE id = vid FOR UPDATE;
+        IF avail < qty THEN
+          RAISE EXCEPTION 'Estoque insuficiente para a variante %', vid;
+        END IF;
+        UPDATE public.product_variants SET stock = stock - qty WHERE id = vid;
+      END IF;
+    END LOOP;
+  END IF;
 
-  return case when tg_op = 'DELETE' then old else new end;
-end;
+  IF tg_op = 'DELETE' THEN RETURN old; END IF;
+  RETURN new;
+END;
 $$;
 
 
@@ -146,6 +154,22 @@ $$;
 ALTER FUNCTION "public"."apply_stock_on_sale_change"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."expire_pending_orders"() RETURNS "void"
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+  UPDATE public.orders
+  SET status = 'cancelado'
+  WHERE status = 'aguardando_pagamento'
+    AND expires_at IS NOT NULL
+    AND expires_at < now();
+END;
+$$;
+
+
+ALTER FUNCTION "public"."expire_pending_orders"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -176,12 +200,11 @@ ALTER FUNCTION "public"."is_admin"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."is_global_admin"() RETURNS boolean
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public'
+    LANGUAGE "sql" STABLE SECURITY DEFINER
     AS $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = 'admin'
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'superadmin'
   );
 $$;
 
@@ -233,6 +256,22 @@ $$;
 
 
 ALTER FUNCTION "public"."is_store_owner"("p_store_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."shares_store_with"("p_user_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  select exists (
+    select 1
+    from public.store_members sm1
+    join public.store_members sm2 on sm1.store_id = sm2.store_id
+    where sm1.user_id = auth.uid() and sm2.user_id = p_user_id
+  );
+$$;
+
+
+ALTER FUNCTION "public"."shares_store_with"("p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."next_tenant_seq"("p_store_id" "uuid", "p_seq" "text") RETURNS bigint
@@ -383,6 +422,8 @@ CREATE TABLE IF NOT EXISTS "public"."orders" (
     "label_url" "text",
     "superfrete_order_id" "text",
     "store_id" "uuid" NOT NULL,
+    "mp_init_point" "text",
+    "expires_at" timestamp with time zone,
     CONSTRAINT "orders_status_check" CHECK (("status" = ANY (ARRAY['aguardando_pagamento'::"text", 'novo'::"text", 'em_contato'::"text", 'confirmado'::"text", 'pago'::"text", 'enviado'::"text", 'entregue'::"text", 'cancelado'::"text"])))
 );
 
@@ -506,6 +547,7 @@ CREATE TABLE IF NOT EXISTS "public"."sales" (
     "paid_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "store_id" "uuid" NOT NULL,
+    "sold_by" "uuid" DEFAULT "auth"."uid"(),
     CONSTRAINT "sales_payment_method_check" CHECK (("payment_method" = ANY (ARRAY['pix'::"text", 'cartao'::"text", 'dinheiro'::"text", 'prazo'::"text"])))
 );
 
@@ -527,7 +569,6 @@ ALTER TABLE "public"."store_members" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."store_settings" (
-    "id" integer DEFAULT 1 NOT NULL,
     "data" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "store_id" "uuid" NOT NULL
@@ -671,12 +712,7 @@ ALTER TABLE ONLY "public"."store_members"
 
 
 ALTER TABLE ONLY "public"."store_settings"
-    ADD CONSTRAINT "store_settings_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."store_settings"
-    ADD CONSTRAINT "store_settings_store_id_key" UNIQUE ("store_id");
+    ADD CONSTRAINT "store_settings_pkey" PRIMARY KEY ("store_id");
 
 
 
@@ -723,6 +759,10 @@ CREATE INDEX "idx_product_variants_store" ON "public"."product_variants" USING "
 
 
 CREATE INDEX "idx_products_store" ON "public"."products" USING "btree" ("store_id");
+
+
+
+CREATE INDEX "idx_sales_sold_by" ON "public"."sales" USING "btree" ("sold_by");
 
 
 
@@ -823,6 +863,11 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."sales"
+    ADD CONSTRAINT "sales_sold_by_profile_fkey" FOREIGN KEY ("sold_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
@@ -939,6 +984,10 @@ CREATE POLICY "profiles_select_self_or_admin" ON "public"."profiles" FOR SELECT 
 
 
 
+CREATE POLICY "profiles_select_store_peers" ON "public"."profiles" FOR SELECT TO "authenticated" USING ("public"."shares_store_with"("id"));
+
+
+
 CREATE POLICY "profiles_update_self" ON "public"."profiles" FOR UPDATE TO "authenticated" USING (("id" = "auth"."uid"())) WITH CHECK (("id" = "auth"."uid"()));
 
 
@@ -957,7 +1006,7 @@ CREATE POLICY "store_members_select" ON "public"."store_members" FOR SELECT TO "
 
 
 
-CREATE POLICY "store_members_write" ON "public"."store_members" TO "authenticated" USING (("public"."is_store_admin"("store_id") OR "public"."is_global_admin"())) WITH CHECK (("public"."is_store_admin"("store_id") OR "public"."is_global_admin"()));
+CREATE POLICY "store_members_write" ON "public"."store_members" TO "authenticated" USING (("public"."is_store_owner"("store_id") OR "public"."is_global_admin"())) WITH CHECK (("public"."is_store_owner"("store_id") OR "public"."is_global_admin"()));
 
 
 
@@ -968,7 +1017,7 @@ CREATE POLICY "store_settings_select_public" ON "public"."store_settings" FOR SE
 
 
 
-CREATE POLICY "store_settings_write_admin" ON "public"."store_settings" TO "authenticated" USING (("public"."is_store_admin"("store_id") OR "public"."is_global_admin"())) WITH CHECK (("public"."is_store_admin"("store_id") OR "public"."is_global_admin"()));
+CREATE POLICY "store_settings_write_owner" ON "public"."store_settings" TO "authenticated" USING (("public"."is_store_owner"("store_id") OR "public"."is_global_admin"())) WITH CHECK (("public"."is_store_owner"("store_id") OR "public"."is_global_admin"()));
 
 
 
@@ -1033,10 +1082,34 @@ CREATE POLICY "variants_write_store_admin" ON "public"."product_variants" TO "au
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1199,6 +1272,12 @@ GRANT ALL ON FUNCTION "public"."apply_stock_on_sale_change"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."expire_pending_orders"() TO "anon";
+GRANT ALL ON FUNCTION "public"."expire_pending_orders"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."expire_pending_orders"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "anon";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
@@ -1235,6 +1314,12 @@ GRANT ALL ON FUNCTION "public"."is_store_owner"("p_store_id" "uuid") TO "service
 
 
 
+GRANT ALL ON FUNCTION "public"."shares_store_with"("p_user_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."shares_store_with"("p_user_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."shares_store_with"("p_user_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."next_tenant_seq"("p_store_id" "uuid", "p_seq" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."next_tenant_seq"("p_store_id" "uuid", "p_seq" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."next_tenant_seq"("p_store_id" "uuid", "p_seq" "text") TO "service_role";
@@ -1250,6 +1335,12 @@ GRANT ALL ON FUNCTION "public"."set_order_number"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."set_sale_defaults"() TO "anon";
 GRANT ALL ON FUNCTION "public"."set_sale_defaults"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_sale_defaults"() TO "service_role";
+
+
+
+
+
+
 
 
 

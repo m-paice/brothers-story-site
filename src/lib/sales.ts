@@ -5,7 +5,7 @@ import type { NewSale, Sale } from '../types/sale';
  * Registra uma venda de balcão. Retorna a venda gravada (número e vencimento
  * gerados pelo banco). Sem Supabase configurado, simula o resultado.
  */
-export async function createSale(payload: NewSale): Promise<Sale> {
+export async function createSale(payload: NewSale, storeId?: string): Promise<Sale> {
   if (!supabase) {
     const now = new Date();
     const fake = Math.floor(Math.random() * 9999) + 1;
@@ -22,13 +22,15 @@ export async function createSale(payload: NewSale): Promise<Sale> {
       paid_at: payload.payment_method !== 'prazo' ? now.toISOString() : null,
       due_date: dueDate,
       created_at: now.toISOString(),
+      sold_by: null,
+      seller: null,
       ...payload,
     };
   }
 
   const { data, error } = await supabase
     .from('sales')
-    .insert(payload)
+    .insert({ ...payload, ...(storeId ? { store_id: storeId } : undefined) })
     .select('*')
     .single();
 
@@ -40,7 +42,7 @@ export async function fetchSales(storeId?: string): Promise<Sale[]> {
   if (!supabase) return [];
   let query = supabase
     .from('sales')
-    .select('*')
+    .select('*, seller:profiles!sales_sold_by_profile_fkey(nome)')
     .order('created_at', { ascending: false });
   if (storeId) query = query.eq('store_id', storeId);
   const { data, error } = await query;

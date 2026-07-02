@@ -1084,6 +1084,7 @@
   color: var(--color-text-secondary);
 }
 .checkout__field input,
+.checkout__field select,
 .checkout__field textarea {
   padding: var(--space-3);
   background: var(--color-surface-2);
@@ -1094,14 +1095,24 @@
   font-family: inherit;
   transition: border-color var(--transition);
 }
-.checkout__field input {
+.checkout__field input,
+.checkout__field select {
   height: 42px;
   padding: 0 var(--space-3);
+}
+.checkout__field select {
+  cursor: pointer;
+  appearance: none;
+  padding-right: 32px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8a93' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
 }
 .checkout__field textarea {
   resize: vertical;
 }
 .checkout__field input:focus,
+.checkout__field select:focus,
 .checkout__field textarea:focus {
   border-color: var(--color-accent);
   outline: none;

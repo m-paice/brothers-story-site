@@ -4,19 +4,26 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchSettings } from '../../lib/settings';
 import '../../styles/admin.css';
 
-const NAV = [
-  { to: '/admin', end: true, label: 'Dashboard', icon: '◧' },
-  { to: '/admin/vendas', end: false, label: 'Vendas', icon: '$' },
-  { to: '/admin/produtos', end: false, label: 'Produtos', icon: '▦' },
-  { to: '/admin/pedidos', end: false, label: 'Pedidos', icon: '✦' },
-  { to: '/admin/configuracoes', end: false, label: 'Configurações', icon: '⚙' },
-];
-
 export function AdminLayout() {
-  const { session, signOut, stores, currentStoreId, switchStore } = useAuth();
+  const { session, signOut, stores, currentStoreId, currentStoreRole, switchStore } =
+    useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [setupPending, setSetupPending] = useState(false);
+
+  const isOwner = currentStoreRole === 'owner';
+  const NAV = [
+    ...(isOwner ? [{ to: '/admin', end: true, label: 'Dashboard', icon: '◧' }] : []),
+    { to: '/admin/vendas', end: false, label: 'Vendas', icon: '$' },
+    { to: '/admin/produtos', end: false, label: 'Produtos', icon: '▦' },
+    { to: '/admin/pedidos', end: false, label: 'Pedidos', icon: '✦' },
+    ...(isOwner
+      ? [
+          { to: '/admin/equipe', end: false, label: 'Funcionários', icon: '⚉' },
+          { to: '/admin/configuracoes', end: false, label: 'Configurações', icon: '⚙' },
+        ]
+      : []),
+  ];
 
   useEffect(() => {
     if (!currentStoreId) return;

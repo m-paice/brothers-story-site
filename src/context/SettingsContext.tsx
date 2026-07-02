@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { fetchSettings, DEFAULT_SETTINGS } from '../lib/settings';
+import { useTenant } from './TenantContext';
 import type { StoreSettings } from '../types/settings';
 
 interface SettingsContextValue {
@@ -21,17 +22,18 @@ const SettingsContext = createContext<SettingsContextValue>({
 });
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const { storeId } = useTenant();
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    fetchSettings()
+    fetchSettings(storeId ?? undefined)
       .then(setSettings)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [tick]);
+  }, [storeId, tick]);
 
   return (
     <SettingsContext.Provider

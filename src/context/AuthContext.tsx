@@ -27,6 +27,7 @@ interface AuthContextValue {
   currentStoreId: string | null;
   isSuperAdmin: boolean;
   isStoreAdmin: boolean;
+  currentStoreRole: StoreMembership['storeRole'] | null;
   switchStore: (storeId: string) => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
@@ -167,6 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isStoreAdmin: stores.some(
           (s) => s.storeRole === 'owner' || s.storeRole === 'admin'
         ),
+        currentStoreRole:
+          stores.find((s) => s.storeId === currentStoreId)?.storeRole ?? null,
         switchStore,
         signIn,
         signUp,
